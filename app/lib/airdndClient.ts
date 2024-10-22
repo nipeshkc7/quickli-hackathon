@@ -1,14 +1,14 @@
 // src/repo.ts
-import { MongoClient, Db, Collection, ObjectId } from 'mongodb';
-import { EventType, UserType } from './types/airdnd';
+import { MongoClient, Db, Collection, ObjectId } from 'mongodb'
+import { EventType, UserType } from './types/airdnd'
 
 export class airDNDEvents {
-    private db: Db;
-    private collection: Collection<EventType>;
+    private db: Db
+    private collection: Collection<EventType>
 
     constructor(db: Db) {
-        this.db = db;
-        this.collection = this.db.collection<EventType>('airDNDEvents');
+        this.db = db
+        this.collection = this.db.collection<EventType>('airDNDEvents')
     }
 
     // Create a new document
@@ -16,22 +16,22 @@ export class airDNDEvents {
         const result = await this.collection.insertOne({
             ...data,
             createdAt: new Date(),
-        } as EventType);
+        } as EventType)
         return {
             _id: result.insertedId,
             ...data,
             createdAt: new Date(),
-        } as EventType;
+        } as EventType
     }
 
     // Read (find) documents
     async find(query: Partial<EventType>): Promise<EventType[]> {
-        return await this.collection.find(query).toArray();
+        return await this.collection.find(query).toArray()
     }
 
     // Find a document by ID
     async findById(id: string): Promise<EventType | null> {
-        return await this.collection.findOne({ _id: new ObjectId(id) });
+        return await this.collection.findOne({ _id: new ObjectId(id) })
     }
 
     // Update a document by ID
@@ -43,26 +43,26 @@ export class airDNDEvents {
             { _id: new ObjectId(id) },
             { $set: data },
             { returnDocument: 'after' }
-        );
-        return result;
+        )
+        return result
     }
 
     // Delete a document by ID
     async delete(id: string): Promise<EventType | null> {
         const result = await this.collection.findOneAndDelete({
             _id: new ObjectId(id),
-        });
-        return result;
+        })
+        return result
     }
 }
 
 export class airDNDUsers {
-    private db: Db;
-    private collection: Collection<UserType>;
+    private db: Db
+    private collection: Collection<UserType>
 
     constructor(db: Db) {
-        this.db = db;
-        this.collection = this.db.collection<UserType>('airDNDUsers');
+        this.db = db
+        this.collection = this.db.collection<UserType>('airDNDUsers')
     }
 
     // Create a new document
@@ -70,22 +70,26 @@ export class airDNDUsers {
         const result = await this.collection.insertOne({
             ...data,
             createdAt: new Date(),
-        } as UserType);
+        } as UserType)
         return {
             _id: result.insertedId,
             ...data,
             createdAt: new Date(),
-        } as UserType;
+        } as UserType
     }
 
     // Read (find) documents
     async find(query: Partial<UserType>): Promise<UserType[]> {
-        return await this.collection.find(query).toArray();
+        return await this.collection.find(query).toArray()
     }
 
     // Find a document by ID
     async findById(id: string): Promise<UserType | null> {
-        return await this.collection.findOne({ _id: new ObjectId(id) });
+        return await this.collection.findOne({ _id: new ObjectId(id) })
+    }
+
+    async findByEmail(email: string): Promise<UserType | null> {
+        return await this.collection.findOne({ email: email })
     }
 
     // Update a document by ID
@@ -97,28 +101,28 @@ export class airDNDUsers {
             { _id: new ObjectId(id) },
             { $set: data },
             { returnDocument: 'after' }
-        );
-        return result;
+        )
+        return result
     }
 
     // Delete a document by ID
     async delete(id: string): Promise<UserType | null> {
         const result = await this.collection.findOneAndDelete({
             _id: new ObjectId(id),
-        });
-        return result;
+        })
+        return result
     }
 }
 
 // MongoDB connection setup
 export const connectToMongoDB = async (collectionName: string): Promise<Db> => {
     if (process.env.MONGODB_URI === undefined) {
-        throw new Error('MONGODB_URI is not defined');
+        throw new Error('MONGODB_URI is not defined')
     }
-    const client = new MongoClient(process.env.MONGODB_URI);
-    await client.connect();
-    console.log('MongoDB connected');
-    return client.db(collectionName);
-};
+    const client = new MongoClient(process.env.MONGODB_URI)
+    await client.connect()
+    console.log('MongoDB connected')
+    return client.db(collectionName)
+}
 
-export const dbName = 'AirDND';
+export const dbName = 'AirDND'

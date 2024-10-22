@@ -8,8 +8,6 @@ import { Box, Typography, IconButton, CircularProgress } from "@mui/material";
 import {
   Search as SearchIcon,
   MyLocation as LocationIcon,
-  Place as EventIcon,
-  PersonPinCircle as UserIcon,
 } from "@mui/icons-material";
 
 type Event = {
@@ -22,9 +20,10 @@ type Event = {
   };
   date: string;
   participants: number;
+  gameType: string;
 };
 
-// Sample event data for different places in New South Wales
+// Sample event data
 const boardGameEvents: Event[] = [
   {
     id: 1,
@@ -33,6 +32,7 @@ const boardGameEvents: Event[] = [
     coordinates: { lat: -33.8688, lng: 151.2093 },
     date: "Oct 25, 2024",
     participants: 10,
+    gameType: "Catan",
   },
   {
     id: 2,
@@ -41,6 +41,7 @@ const boardGameEvents: Event[] = [
     coordinates: { lat: -32.9283, lng: 151.7817 },
     date: "Nov 1, 2024",
     participants: 20,
+    gameType: "Chess",
   },
   {
     id: 3,
@@ -49,6 +50,7 @@ const boardGameEvents: Event[] = [
     coordinates: { lat: -34.4278, lng: 150.8931 },
     date: "Nov 3, 2024",
     participants: 12,
+    gameType: "Battleship",
   },
   {
     id: 4,
@@ -57,6 +59,7 @@ const boardGameEvents: Event[] = [
     coordinates: { lat: -32.2569, lng: 148.601 },
     date: "Nov 8, 2024",
     participants: 15,
+    gameType: "Monopoly",
   },
   {
     id: 5,
@@ -65,6 +68,16 @@ const boardGameEvents: Event[] = [
     coordinates: { lat: -36.0737, lng: 146.9135 },
     date: "Nov 10, 2024",
     participants: 18,
+    gameType: "Scrabble",
+  },
+  {
+    id: 5,
+    name: "Ultimate DnD Campaign",
+    location: "Gaming Hub, Albury",
+    coordinates: { lat: -36.0737, lng: 146.9135 },
+    date: "Nov 10, 2024",
+    participants: 18,
+    gameType: "Dungeons and Dragons",
   },
 ];
 
@@ -128,6 +141,23 @@ const HomePage: React.FC = () => {
     inputRef.current?.focus();
   };
 
+  const getImgSrc = (gameType: string) => {
+    switch (gameType) {
+      case "Catan":
+        return "./catan.png";
+      case "Scrabble":
+        return "./scrabble.png";
+      case "Battleship":
+        return "./battleship.png";
+      case "Monopoly":
+        return "./monopoly.png";
+      case "Chess":
+        return "./chess.png";
+      case "Dungeons and Dragons":
+        return "./dungeon.png";
+    }
+  };
+
   return (
     <Box sx={{ height: "100vh", width: "100vw", position: "relative" }}>
       {/* Map Component */}
@@ -142,7 +172,7 @@ const HomePage: React.FC = () => {
         mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
         onClick={() => setSelectedEvent(null)} // Deselect event when clicking on the map
       >
-        {/* Display event markers with icons */}
+        {/* Display event markers with images */}
         {filteredEvents.map((event) => (
           <Marker
             key={event.id}
@@ -155,10 +185,21 @@ const HomePage: React.FC = () => {
               setSelectedEvent(event);
               setActiveMarker(event.id); // Set the active marker ID for animation
             }}
+            backgroundColor="transparent"
           >
-            <EventIcon
+            <img
+              src={getImgSrc(event.gameType)}
+              alt={event.gameType}
               className={activeMarker === event.id ? "bounce-once" : ""}
-              style={{ color: "#ff6347", fontSize: "30px", cursor: "pointer" }}
+              style={{
+                width: "60px",
+                height: "60px",
+                cursor: "pointer",
+                transform: "translate(-50%, -100%)",
+                borderRadius: "50%", // Make the image circular
+                border: "2px solid #fff", // Add a border
+                objectFit: "cover",
+              }}
               onAnimationEnd={() => setActiveMarker(null)} // Clear animation state after animation completes
             />
           </Marker>
@@ -171,7 +212,15 @@ const HomePage: React.FC = () => {
             latitude={currentLocation.lat}
             anchor="bottom"
           >
-            <UserIcon style={{ color: "#4682b4", fontSize: "30px" }} />
+            <div
+              style={{
+                width: "20px",
+                height: "20px",
+                backgroundColor: "#4682b4",
+                borderRadius: "50%",
+                border: "2px solid #fff",
+              }}
+            />
           </Marker>
         )}
 
@@ -209,7 +258,7 @@ const HomePage: React.FC = () => {
           top: "20px",
           left: "50%",
           transform: "translateX(-50%)",
-          width: "60%",
+          width: "80%",
           padding: 2,
           borderRadius: 2,
           boxShadow: 3,
@@ -217,6 +266,7 @@ const HomePage: React.FC = () => {
           alignItems: "center",
           zIndex: 999,
           cursor: "text",
+          backgroundColor: "transparent", // Light beige background for board game feel
         }}
         onClick={focusInput}
       >
@@ -225,6 +275,9 @@ const HomePage: React.FC = () => {
           type="text"
           ref={inputRef}
           className="hidden-input"
+          style={{
+            textTransform: "uppercase",
+          }}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyPress={(e) => e.key === "Enter" && handleSearch()}
@@ -232,10 +285,14 @@ const HomePage: React.FC = () => {
         />
 
         {/* Display characters as Scrabble tiles */}
-        <Box className="scrabble-search-characters" onClick={focusInput}>
+        <Box
+          className="scrabble-search-characters"
+          onClick={focusInput}
+          sx={{ display: "flex", flexWrap: "wrap", flexGrow: 1 }}
+        >
           {search.length === 0 && (
             <Typography variant="body1" sx={{ color: "#666", marginLeft: 1 }}>
-              Type to search...
+              Search for events
             </Typography>
           )}
           {search.split("").map((char, index) => (

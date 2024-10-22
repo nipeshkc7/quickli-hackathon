@@ -21,29 +21,31 @@ const authOptions: NextAuthOptions = {
                 session.user.id = token.sub
             }
 
-            // if (!session.user.email) {
-            //     return session
-            // }
-            // try {
-            //     const db = await connectToMongoDB('airDND')
-            //     const repo = new airDNDUsers(db)
-            //     if (await repo.findByEmail(session?.user?.email)) {
-            //         console.log('user found in db, not creating new user')
-            //         return session
-            //     }
-            //     const insertedId = await repo.create({
-            //         fname: session?.user?.email,
-            //         lname: '',
-            //         age: 0,
-            //         email: session?.user?.email,
-            //         role: 'user',
-            //         rating: 0,
-            //     })
-            //     console.log('insertedId', insertedId)
-            // } catch (e: any) {
-            //     console.error(e)
-            //     throw new Error('Error creating user', e.message)
-            // }
+            if (!session.user.email) {
+                return session
+            }
+            try {
+                console.log('Creating user in db')
+                const db = await connectToMongoDB('airDND')
+                const repo = new airDNDUsers(db)
+                if (await repo.findByEmail(session?.user?.email)) {
+                    console.log('user found in db, not creating new user')
+                    return session
+                }
+                const insertedId = await repo.create({
+                    fname: session?.user?.email,
+                    lname: '',
+                    age: 0,
+                    email: session?.user?.email,
+                    role: 'user',
+                    rating: 0,
+                })
+                console.log('insertedId', insertedId)
+            } catch (e: any) {
+                console.error(e)
+                console.error('Error creating user', e.message)
+                return session
+            }
 
             return session
         },

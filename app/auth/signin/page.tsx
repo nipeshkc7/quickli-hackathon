@@ -3,10 +3,9 @@
 import { signIn, useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Box, Typography } from "@mui/material";
-import { useEffect } from "react";
-import Image from "next/image";
+import { useEffect, Suspense } from "react";
 
-const SignInPage: React.FC = () => {
+const SignInContent = () => {
   const { data: session } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -14,9 +13,9 @@ const SignInPage: React.FC = () => {
 
   useEffect(() => {
     if (session) {
-      router.push(callbackUrl);
+      router.replace(callbackUrl);
     }
-  }, [session, router]);
+  }, [session, router, callbackUrl]);
 
   return (
     <Box
@@ -25,47 +24,46 @@ const SignInPage: React.FC = () => {
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
-        height: "100vh",
+        minHeight: "100vh",
         padding: 4,
-        backgroundColor: "#f5f5f5", // Non-black background
+        backgroundColor: "#f0f0f0",
       }}
     >
-      <Typography
-        variant="h4"
-        gutterBottom
-        sx={{ fontWeight: "bold", color: "#333" }}
-      >
+      <Typography variant="h4" gutterBottom>
         Sign In
       </Typography>
       <Button
-        variant="contained"
-        onClick={() => signIn("google")}
+        variant="outlined"
+        onClick={() => signIn("google", { callbackUrl })}
         sx={{
-          marginTop: 2,
-          backgroundColor: "#fff",
-          color: "#000",
+          mt: 2,
           textTransform: "none",
-          fontSize: "16px",
-          padding: "10px 24px",
-          borderRadius: 2,
-          boxShadow: "0px 2px 4px rgba(0, 0, 0, 0.25)",
+          color: "rgba(0, 0, 0, 0.54)",
+          backgroundColor: "#fff",
+          borderColor: "#ccc",
           "&:hover": {
-            backgroundColor: "#e0e0e0",
+            backgroundColor: "#f5f5f5",
+            borderColor: "#bbb",
           },
-          display: "flex",
-          alignItems: "center",
+          width: "100%",
+          maxWidth: 360,
+          fontSize: 16,
+          fontWeight: 500,
+          padding: "10px 0",
         }}
       >
-        <Image
-          src="/google-logo.svg"
-          alt="Google Logo"
-          width={40}
-          height={40}
-          style={{ marginRight: "8px" }}
-        />
+        {/* Include your Google logo if desired */}
         Sign in with Google
       </Button>
     </Box>
+  );
+};
+
+const SignInPage: React.FC = () => {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SignInContent />
+    </Suspense>
   );
 };
 

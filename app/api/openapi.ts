@@ -114,6 +114,33 @@ const openApiDocument: OpenAPIV3.Document = {
                 },
             },
         },
+        '/api/events/join': {
+            post: {
+                summary: 'Send confirmation email with calendar invite',
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                $ref: '#/components/schemas/EventConfirmationInput',
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    '200': {
+                        description: 'Confirmation email sent successfully',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    $ref: '#/components/schemas/ConfirmationResponse',
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
         '/api/events/{id}': {
             put: {
                 summary: 'Update an event',
@@ -444,6 +471,31 @@ const openApiDocument: OpenAPIV3.Document = {
                     email: { type: 'string' },
                     role: { type: 'string' },
                     rating: { type: 'string' },
+                },
+            },
+            EventConfirmationInput: {
+                type: 'object',
+                required: [
+                    'email',
+                    'name',
+                    'eventName',
+                    'eventDate',
+                    'eventTime',
+                    'eventLocation',
+                ],
+                properties: {
+                    email: { type: 'string', format: 'email' },
+                    name: { type: 'string' },
+                    eventName: { type: 'string' },
+                    eventDate: { type: 'string', format: 'date' },
+                    eventTime: { type: 'string', format: 'time' },
+                    eventLocation: { type: 'string' },
+                },
+            },
+            ConfirmationResponse: {
+                type: 'object',
+                properties: {
+                    message: { type: 'string' },
                 },
             },
             UserInput: {

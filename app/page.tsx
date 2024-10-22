@@ -9,6 +9,7 @@ import {
     Search as SearchIcon,
     MyLocation as LocationIcon,
 } from '@mui/icons-material'
+import { Button } from '@mui/material'
 
 type Event = {
     id: number
@@ -193,12 +194,10 @@ const HomePage: React.FC = () => {
                                 activeMarker === event.id ? 'bounce-once' : ''
                             }
                             style={{
-                                width: '60px',
-                                height: '60px',
+                                width: '50px',
+                                height: '50px',
                                 cursor: 'pointer',
                                 transform: 'translate(-50%, -100%)',
-                                borderRadius: '50%', // Make the image circular
-                                border: '2px solid #fff', // Add a border
                                 objectFit: 'cover',
                             }}
                             onAnimationEnd={() => setActiveMarker(null)} // Clear animation state after animation completes
@@ -235,7 +234,7 @@ const HomePage: React.FC = () => {
                         closeOnClick={false}
                         className="mapbox-popup-content"
                     >
-                        <Box>
+                        <Box color="black">
                             <Typography variant="h6">
                                 {selectedEvent.name}
                             </Typography>

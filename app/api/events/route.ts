@@ -1,7 +1,6 @@
 import Repo, { connectToMongoDB } from "@/app/lib/repo";
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "../auth/[...nextauth]/route";
 
 export async function GET(req: NextRequest) {
   const db = await connectToMongoDB("events");
@@ -11,10 +10,6 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
-    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
-  }
   const data = await req.json();
   try {
     const db = await connectToMongoDB("events");

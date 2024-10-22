@@ -15,7 +15,6 @@ const authOptions: NextAuthOptions = {
     secret: process.env.NEXTAUTH_SECRET,
     callbacks: {
         async session({ session, token }) {
-            console.log('Session received', session)
             // Include user.id on session
             if (session.user && token.sub) {
                 session.user.id = token.sub
@@ -25,11 +24,9 @@ const authOptions: NextAuthOptions = {
                 return session
             }
             try {
-                console.log('Creating user in db')
-                const db = await connectToMongoDB('airDND')
+                const db = await connectToMongoDB('AirDND')
                 const repo = new airDNDUsers(db)
                 if (await repo.findByEmail(session?.user?.email)) {
-                    console.log('user found in db, not creating new user')
                     return session
                 }
                 const insertedId = await repo.create({
@@ -40,7 +37,6 @@ const authOptions: NextAuthOptions = {
                     role: 'user',
                     rating: 0,
                 })
-                console.log('insertedId', insertedId)
             } catch (e: any) {
                 console.error(e)
                 console.error('Error creating user', e.message)

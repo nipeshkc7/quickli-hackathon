@@ -125,4 +125,4 @@ export const connectToMongoDB = async (collectionName: string): Promise<Db> => {
     return client.db(collectionName)
 }
 
-export const dbName = 'AirDND'
+export const dbName = 'airDND'

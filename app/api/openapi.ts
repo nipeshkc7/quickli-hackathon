@@ -8,6 +8,57 @@ const openApiDocument: OpenAPIV3.Document = {
     description: "API for managing AirDND events",
   },
   paths: {
+    // EVENTS
+    "/api/event/{id}": {
+      get: {
+        summary: "Get specific event",
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: {
+              type: "string",
+            },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "Successful response",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "array",
+                  items: {
+                    $ref: "#/components/schemas/Event",
+                  },
+                },
+              },
+            },
+          },
+          "404": {
+            description: "Event not found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/Error",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Error getting event details",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/Error",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     "/api/events": {
       get: {
         summary: "Get all events",
@@ -63,76 +114,16 @@ const openApiDocument: OpenAPIV3.Document = {
         },
       },
     },
-    paths: {
-        // EVENTS
-        '/api/event/{id}': {
-            get: {
-                summary: 'Get specific event',
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: {
-                            type: 'string',
-                        },
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Successful response',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'array',
-                                    items: {
-                                        $ref: '#/components/schemas/Event',
-                                    },
-                                },
-                            },
-                        },
-                    },
-                    '404': {
-                        description: 'Event not found',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    $ref: '#/components/schemas/Error',
-                                },
-                            },
-                        },
-                    },
-                    '500': {
-                        description: 'Error getting event details',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    $ref: '#/components/schemas/Error',
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        '/api/events': {
-            get: {
-                summary: 'Get all events',
-                responses: {
-                    '200': {
-                        description: 'Successful response',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'array',
-                                    items: {
-                                        $ref: '#/components/schemas/Event',
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
+    "/api/events/{id}": {
+      put: {
+        summary: "Update an event",
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: {
+              type: "string",
             },
           },
         ],
@@ -168,196 +159,7 @@ const openApiDocument: OpenAPIV3.Document = {
             },
           },
         },
-        // USERS
-        '/api/user/{id}': {
-            get: {
-                summary: 'Get specific user',
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: {
-                            type: 'string',
-                        },
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'Successful response',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'array',
-                                    items: {
-                                        $ref: '#/components/schemas/User',
-                                    },
-                                },
-                            },
-                        },
-                    },
-                    '404': {
-                        description: 'User not found',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    $ref: '#/components/schemas/Error',
-                                },
-                            },
-                        },
-                    },
-                    '500': {
-                        description: 'Error getting user details',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    $ref: '#/components/schemas/Error',
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        '/api/users': {
-            get: {
-                summary: 'Get all users',
-                responses: {
-                    '200': {
-                        description: 'Successful response',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    type: 'array',
-                                    items: {
-                                        $ref: '#/components/schemas/User',
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-            post: {
-                summary: 'Create a new user',
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: {
-                                $ref: '#/components/schemas/UserInput',
-                            },
-                        },
-                    },
-                },
-                responses: {
-                    '201': {
-                        description: 'User created successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    $ref: '#/components/schemas/User',
-                                },
-                            },
-                        },
-                    },
-                    '500': {
-                        description: 'Error creating user',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    $ref: '#/components/schemas/Error',
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        '/api/users/{id}': {
-            put: {
-                summary: 'Update user details',
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: {
-                            type: 'string',
-                        },
-                    },
-                ],
-                requestBody: {
-                    required: true,
-                    content: {
-                        'application/json': {
-                            schema: {
-                                $ref: '#/components/schemas/UserInput',
-                            },
-                        },
-                    },
-                },
-                responses: {
-                    '200': {
-                        description: 'User details updated successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    $ref: '#/components/schemas/User',
-                                },
-                            },
-                        },
-                    },
-                    '500': {
-                        description: 'Error updating user details',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    $ref: '#/components/schemas/Error',
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        },
-        '/api/users/delete/{id}': {
-            delete: {
-                summary: 'Delete a user',
-                parameters: [
-                    {
-                        name: 'id',
-                        in: 'path',
-                        required: true,
-                        schema: {
-                            type: 'string',
-                        },
-                    },
-                ],
-                responses: {
-                    '200': {
-                        description: 'User deleted successfully',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    $ref: '#/components/schemas/User',
-                                },
-                            },
-                        },
-                    },
-                    '500': {
-                        description: 'Error deleting user',
-                        content: {
-                            'application/json': {
-                                schema: {
-                                    $ref: '#/components/schemas/Error',
-                                },
-                            },
-                        },
-                    },
-                },
-            },
-        },
+      },
     },
     "/api/events/delete/{id}": {
       delete: {
@@ -382,34 +184,203 @@ const openApiDocument: OpenAPIV3.Document = {
                 },
               },
             },
-            User: {
-                type: 'object',
-                properties: {
-                    _id: { type: 'string' },
-                    fname: { type: 'string' },
-                    lname: { type: 'string' },
-                    age: { type: 'number' },
-                    email: { type: 'string' },
-                    role: { type: 'string' },
-                    rating: { type: 'string' },
+          },
+          "500": {
+            description: "Error deleting event",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/Error",
                 },
+              },
             },
-            UserInput: {
-                type: 'object',
-                required: ['fname', 'lname', 'age', 'email'],
-                properties: {
-                    fname: { type: 'string' },
-                    lname: { type: 'string' },
-                    age: { type: 'number' },
-                    email: { type: 'string' },
-                    role: { type: 'string' },
-                    rating: { type: 'string' },
+          },
+        },
+      },
+    },
+    // USERS
+    "/api/user/{id}": {
+      get: {
+        summary: "Get specific user",
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: {
+              type: "string",
+            },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "Successful response",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "array",
+                  items: {
+                    $ref: "#/components/schemas/User",
+                  },
                 },
+              },
             },
-            Error: {
-                type: 'object',
-                properties: {
-                    error: { type: 'string' },
+          },
+          "404": {
+            description: "User not found",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/Error",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Error getting user details",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/Error",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/users": {
+      get: {
+        summary: "Get all users",
+        responses: {
+          "200": {
+            description: "Successful response",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "array",
+                  items: {
+                    $ref: "#/components/schemas/User",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      post: {
+        summary: "Create a new user",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/UserInput",
+              },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "User created successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/User",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Error creating user",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/Error",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/users/{id}": {
+      put: {
+        summary: "Update user details",
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: {
+              type: "string",
+            },
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/UserInput",
+              },
+            },
+          },
+        },
+        responses: {
+          "200": {
+            description: "User details updated successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/User",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Error updating user details",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/Error",
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    "/api/users/delete/{id}": {
+      delete: {
+        summary: "Delete a user",
+        parameters: [
+          {
+            name: "id",
+            in: "path",
+            required: true,
+            schema: {
+              type: "string",
+            },
+          },
+        ],
+        responses: {
+          "200": {
+            description: "User deleted successfully",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/User",
+                },
+              },
+            },
+          },
+          "500": {
+            description: "Error deleting user",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/Error",
                 },
               },
             },
@@ -455,6 +426,30 @@ const openApiDocument: OpenAPIV3.Document = {
           date: { type: "string", format: "date" },
           participants: { type: "number" },
           description: { type: "string" },
+        },
+      },
+      User: {
+        type: "object",
+        properties: {
+          _id: { type: "string" },
+          fname: { type: "string" },
+          lname: { type: "string" },
+          age: { type: "number" },
+          email: { type: "string" },
+          role: { type: "string" },
+          rating: { type: "string" },
+        },
+      },
+      UserInput: {
+        type: "object",
+        required: ["fname", "lname", "age", "email"],
+        properties: {
+          fname: { type: "string" },
+          lname: { type: "string" },
+          age: { type: "number" },
+          email: { type: "string" },
+          role: { type: "string" },
+          rating: { type: "string" },
         },
       },
       Error: {

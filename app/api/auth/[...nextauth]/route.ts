@@ -15,6 +15,7 @@ const authOptions: NextAuthOptions = {
     secret: process.env.NEXTAUTH_SECRET,
     callbacks: {
         async session({ session, token }) {
+            console.log('Session received', session)
             // Include user.id on session
             if (session.user && token.sub) {
                 session.user.id = token.sub
@@ -45,6 +46,14 @@ const authOptions: NextAuthOptions = {
             }
 
             return session
+        },
+    },
+    events: {
+        async signIn(message) {
+            console.log('User signed in:', message)
+        },
+        async signOut(message) {
+            console.log('User signed out:', message)
         },
     },
     pages: {

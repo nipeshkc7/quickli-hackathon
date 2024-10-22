@@ -4,6 +4,7 @@ import { signIn, useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button, Box, Typography } from '@mui/material'
 import { useEffect, Suspense } from 'react'
+import Image from 'next/image'
 
 const SignInContent = () => {
     const { data: session } = useSession()
@@ -24,35 +25,42 @@ const SignInContent = () => {
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                minHeight: '100vh',
+                height: '100vh',
                 padding: 4,
-                backgroundColor: '#f0f0f0',
+                backgroundColor: '#f5f5f5', // Non-black background
             }}
         >
-            <Typography variant="h4" gutterBottom>
-                Sign In
-            </Typography>
+            <Typography
+                variant="h4"
+                gutterBottom
+                sx={{ fontWeight: 'bold', color: '#333' }}
+            ></Typography>
             <Button
-                variant="outlined"
-                onClick={() => signIn('google', { callbackUrl })}
+                variant="contained"
+                onClick={() => signIn('google')}
                 sx={{
-                    mt: 2,
-                    textTransform: 'none',
-                    color: 'rgba(0, 0, 0, 0.54)',
+                    marginTop: 2,
                     backgroundColor: '#fff',
-                    borderColor: '#ccc',
+                    color: '#000',
+                    textTransform: 'none',
+                    fontSize: '16px',
+                    padding: '10px 24px',
+                    borderRadius: 2,
+                    boxShadow: '0px 2px 4px rgba(0, 0, 0, 0.25)',
                     '&:hover': {
-                        backgroundColor: '#f5f5f5',
-                        borderColor: '#bbb',
+                        backgroundColor: '#e0e0e0',
                     },
-                    width: '100%',
-                    maxWidth: 360,
-                    fontSize: 16,
-                    fontWeight: 500,
-                    padding: '10px 0',
+                    display: 'flex',
+                    alignItems: 'center',
                 }}
             >
-                {/* Include your Google logo if desired */}
+                <Image
+                    src="/google-logo.svg"
+                    alt="Google Logo"
+                    width={40}
+                    height={40}
+                    style={{ marginRight: '8px' }}
+                />
                 Sign in with Google
             </Button>
         </Box>

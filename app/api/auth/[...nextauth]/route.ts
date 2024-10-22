@@ -23,21 +23,26 @@ const authOptions: NextAuthOptions = {
             if (!session.user.email) {
                 return session
             }
-            const db = await connectToMongoDB('airDND')
-            const repo = new airDNDUsers(db)
-            if (await repo.findByEmail(session?.user?.email)) {
-                console.log('user found in db, not creating new user')
-                return session
+            try {
+                const db = await connectToMongoDB('airDND')
+                const repo = new airDNDUsers(db)
+                if (await repo.findByEmail(session?.user?.email)) {
+                    console.log('user found in db, not creating new user')
+                    return session
+                }
+                const insertedId = await repo.create({
+                    fname: session?.user?.email,
+                    lname: '',
+                    age: 0,
+                    email: session?.user?.email,
+                    role: 'user',
+                    rating: 0,
+                })
+                console.log('insertedId', insertedId)
+            } catch (e: any) {
+                console.error(e)
+                throw new Error('Error creating user', e.message)
             }
-            const insertedId = await repo.create({
-                fname: session?.user?.email,
-                lname: '',
-                age: 0,
-                email: session?.user?.email,
-                role: 'user',
-                rating: 0,
-            })
-            console.log('insertedId', insertedId)
 
             return session
         },

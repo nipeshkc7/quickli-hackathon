@@ -1,7 +1,7 @@
 "use client";
 
 import { signIn, useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button, Box, Typography } from "@mui/material";
 import { useEffect } from "react";
 import Image from "next/image";
@@ -9,10 +9,12 @@ import Image from "next/image";
 const SignInPage: React.FC = () => {
   const { data: session } = useSession();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams.get("callbackUrl") || "/";
 
   useEffect(() => {
     if (session) {
-      router.push("/");
+      router.push(callbackUrl);
     }
   }, [session, router]);
 

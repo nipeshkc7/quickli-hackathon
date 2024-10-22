@@ -9,6 +9,7 @@ import {
   CircularProgress,
   MenuItem,
 } from "@mui/material";
+import { useAuth } from "../hooks/useAuth";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { LocalizationProvider } from "@mui/x-date-pickers";
@@ -31,6 +32,18 @@ const CreateEventPage: React.FC = () => {
   const handleMapClick = (e: any) => {
     setCoordinates({ lat: e.lngLat.lat, lng: e.lngLat.lng });
   };
+
+  const { session, isAuthenticated } = useAuth();
+
+  if (isAuthenticated === null) {
+    // Authentication status is being determined or redirection is in progress
+    return null; // Or a loading indicator if you prefer
+  }
+
+  if (!isAuthenticated) {
+    // User is not authenticated and has been redirected
+    return null;
+  }
 
   const handleSubmit = async () => {
     // Validate required fields

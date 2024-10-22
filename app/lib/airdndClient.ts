@@ -1,57 +1,58 @@
 // src/repo.ts
 import { MongoClient, Db, Collection, ObjectId } from 'mongodb';
+import { EventType, UserType } from './types/airdnd';
 
-// Define the type for your data
-type MyModel = any;
-
-class Repo {
+export class airDNDEvents {
     private db: Db;
-    private collection: Collection<MyModel>;
+    private collection: Collection<EventType>;
 
     constructor(db: Db) {
         this.db = db;
-        this.collection = this.db.collection<MyModel>('myModel');
+        this.collection = this.db.collection<EventType>('airDNDEvents');
     }
 
     // Create a new document
-    async create(data: Partial<MyModel>): Promise<MyModel> {
+    async create(data: Partial<EventType>): Promise<EventType> {
         const result = await this.collection.insertOne({
             ...data,
             createdAt: new Date(),
-        } as MyModel);
+        } as EventType);
         return {
             _id: result.insertedId,
             ...data,
             createdAt: new Date(),
-        } as MyModel;
+        } as EventType;
     }
 
     // Read (find) documents
-    async find(query: Partial<MyModel>): Promise<MyModel[]> {
+    async find(query: Partial<EventType>): Promise<EventType[]> {
         return await this.collection.find(query).toArray();
     }
 
     // Find a document by ID
-    async findById(id: string): Promise<MyModel | null> {
+    async findById(id: string): Promise<EventType | null> {
         return await this.collection.findOne({ _id: new ObjectId(id) });
     }
 
     // Update a document by ID
-    async update(id: string, data: Partial<MyModel>): Promise<MyModel | null> {
+    async update(
+        id: string,
+        data: Partial<EventType>
+    ): Promise<EventType | null> {
         const result = await this.collection.findOneAndUpdate(
             { _id: new ObjectId(id) },
             { $set: data },
             { returnDocument: 'after' }
         );
-        return result.value;
+        return result;
     }
 
     // Delete a document by ID
-    async delete(id: string): Promise<MyModel | null> {
+    async delete(id: string): Promise<EventType | null> {
         const result = await this.collection.findOneAndDelete({
             _id: new ObjectId(id),
         });
-        return result.value;
+        return result;
     }
 }
 
@@ -66,4 +67,4 @@ export const connectToMongoDB = async (collectionName: string): Promise<Db> => {
     return client.db(collectionName);
 };
 
-export default Repo;
+export const dbName = 'AirDND';

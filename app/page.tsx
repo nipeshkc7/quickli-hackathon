@@ -10,6 +10,8 @@ import {
     MyLocation as LocationIcon,
 } from '@mui/icons-material'
 import { Button } from '@mui/material'
+import { Modal } from '@mui/material'
+import { TextField } from '@mui/material'
 
 type Event = {
     id: number
@@ -93,6 +95,9 @@ const HomePage: React.FC = () => {
     const [loading, setLoading] = useState(false)
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
     const [activeMarker, setActiveMarker] = useState<number | null>(null)
+    const [email, setEmail] = useState<string>('')
+    const [joining, setJoining] = useState(false)
+    const [emailModalOpen, setEmailModalOpen] = useState(false)
     const inputRef = useRef<HTMLInputElement>(null)
 
     // Handle search filtering
@@ -140,6 +145,49 @@ const HomePage: React.FC = () => {
     // Focus the hidden input when the search bar is clicked
     const focusInput = () => {
         inputRef.current?.focus()
+    }
+
+    // Open modal to ask for email
+    const handleOpenEmailModal = () => {
+        setEmailModalOpen(true)
+    }
+
+    // Close modal and reset email state
+    const handleCloseEmailModal = () => {
+        setEmail('')
+        setEmailModalOpen(false)
+    }
+
+    const handleJoinEvent = async () => {
+        if (!selectedEvent) return
+        setJoining(true)
+        try {
+            const response = await fetch('/api/events/join', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email,
+                    name: 'John Doe', // Replace with dynamic user name
+                    eventName: selectedEvent.name,
+                    eventDate: selectedEvent.date,
+                    eventTime: '18:00', // Example time, replace as needed
+                    eventLocation: selectedEvent.location,
+                }),
+            })
+            if (response.ok) {
+                alert('You have successfully joined the event!')
+                handleCloseEmailModal()
+            } else {
+                alert('Error joining the event. Please try again.')
+            }
+        } catch (error) {
+            console.error('Error sending join request:', error)
+            alert('Error joining the event. Please try again.')
+        } finally {
+            setJoining(false)
+        }
     }
 
     const getImgSrc = (gameType: string) => {
@@ -247,10 +295,77 @@ const HomePage: React.FC = () => {
                             <Typography variant="body2">
                                 Participants: {selectedEvent.participants}
                             </Typography>
+
+                            {/* Join button */}
+                            <Button
+                                variant="contained"
+                                color="primary"
+                                onClick={handleOpenEmailModal}
+                                sx={{
+                                    marginTop: 2,
+                                    backgroundColor: '#8B4513', // Board game themed color
+                                    '&:hover': { backgroundColor: '#A0522D' },
+                                }}
+                            >
+                                Join Event
+                            </Button>
                         </Box>
                     </Popup>
                 )}
             </Map>
+
+            {/* Email Modal */}
+            <Modal
+                open={emailModalOpen}
+                onClose={handleCloseEmailModal}
+                aria-labelledby="email-modal-title"
+                aria-describedby="email-modal-description"
+            >
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: 400,
+                        bgcolor: 'background.paper',
+                        border: '2px solid #000',
+                        boxShadow: 24,
+                        p: 4,
+                        borderRadius: 2,
+                    }}
+                >
+                    <Typography
+                        id="email-modal-title"
+                        variant="h6"
+                        component="h2"
+                        color="black"
+                    >
+                        Enter your email to join the event
+                    </Typography>
+                    <TextField
+                        label="Email"
+                        variant="outlined"
+                        fullWidth
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        sx={{ marginTop: 2 }}
+                    />
+                    <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={handleJoinEvent}
+                        disabled={!email || joining}
+                        sx={{
+                            marginTop: 2,
+                            backgroundColor: '#8B4513', // Board game themed color
+                            '&:hover': { backgroundColor: '#A0522D' },
+                        }}
+                    >
+                        {joining ? 'Joining...' : 'Join'}
+                    </Button>
+                </Box>
+            </Modal>
 
             {/* Scrabble-inspired Search Bar as overlay */}
             <Box

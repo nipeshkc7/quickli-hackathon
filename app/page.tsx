@@ -1,16 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import dynamic from "next/dynamic";
-import Map, { Marker } from "react-map-gl";
+import React, { useEffect, useState, useRef } from "react";
+import Map, { Marker, Popup } from "react-map-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
-import {
-  Box,
-  Typography,
-  InputBase,
-  IconButton,
-  CircularProgress,
-} from "@mui/material";
+import "../styles.css"; // Import your CSS for animations and dark theme popups
+import { Box, Typography, IconButton, CircularProgress } from "@mui/material";
 import {
   Search as SearchIcon,
   MyLocation as LocationIcon,
@@ -29,12 +23,6 @@ type Event = {
   date: string;
   participants: number;
 };
-
-// Define the bounds for New South Wales, Australia (if needed for zoom adjustments or initial view)
-const nswBounds: [number, number][] = [
-  [-37.505, 140.999], // Southwest coordinates [lat, lng]
-  [-28.157, 153.638], // Northeast coordinates [lat, lng]
-];
 
 // Sample event data for different places in New South Wales
 const boardGameEvents: Event[] = [
@@ -89,6 +77,9 @@ const HomePage: React.FC = () => {
     useState<Event[]>(boardGameEvents);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [activeMarker, setActiveMarker] = useState<number | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // Handle search filtering
   const handleSearch = () => {
@@ -132,6 +123,11 @@ const HomePage: React.FC = () => {
     }
   }, []);
 
+  // Focus the hidden input when the search bar is clicked
+  const focusInput = () => {
+    inputRef.current?.focus();
+  };
+
   return (
     <Box sx={{ height: "100vh", width: "100vw", position: "relative" }}>
       {/* Map Component */}
@@ -144,6 +140,7 @@ const HomePage: React.FC = () => {
         style={{ width: "100%", height: "100vh" }}
         mapStyle="mapbox://styles/mapbox/dark-v10"
         mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
+        onClick={() => setSelectedEvent(null)} // Deselect event when clicking on the map
       >
         {/* Display event markers with icons */}
         {filteredEvents.map((event) => (
@@ -152,11 +149,22 @@ const HomePage: React.FC = () => {
             longitude={event.coordinates.lng}
             latitude={event.coordinates.lat}
             anchor="bottom"
+            onClick={(e) => {
+              // Prevent the map's onClick from triggering
+              e.originalEvent.stopPropagation();
+              setSelectedEvent(event);
+              setActiveMarker(event.id); // Set the active marker ID for animation
+            }}
           >
-            <EventIcon style={{ color: "#ff6347", fontSize: "30px" }} />
+            <EventIcon
+              className={activeMarker === event.id ? "bounce-once" : ""}
+              style={{ color: "#ff6347", fontSize: "30px", cursor: "pointer" }}
+              onAnimationEnd={() => setActiveMarker(null)} // Clear animation state after animation completes
+            />
           </Marker>
         ))}
-        {/* Show user's current location with a user icon */}
+
+        {/* Show user's current location */}
         {currentLocation && (
           <Marker
             longitude={currentLocation.lng}
@@ -166,38 +174,87 @@ const HomePage: React.FC = () => {
             <UserIcon style={{ color: "#4682b4", fontSize: "30px" }} />
           </Marker>
         )}
+
+        {/* Display popup for selected event */}
+        {selectedEvent && (
+          <Popup
+            longitude={selectedEvent.coordinates.lng}
+            latitude={selectedEvent.coordinates.lat}
+            anchor="top"
+            onClose={() => setSelectedEvent(null)}
+            closeOnClick={false}
+            className="mapbox-popup-content"
+          >
+            <Box>
+              <Typography variant="h6">{selectedEvent.name}</Typography>
+              <Typography variant="body2">
+                Location: {selectedEvent.location}
+              </Typography>
+              <Typography variant="body2">
+                Date: {selectedEvent.date}
+              </Typography>
+              <Typography variant="body2">
+                Participants: {selectedEvent.participants}
+              </Typography>
+            </Box>
+          </Popup>
+        )}
       </Map>
 
-      {/* Search bar as overlay */}
+      {/* Scrabble-inspired Search Bar as overlay */}
       <Box
+        className="scrabble-search-bar"
         sx={{
           position: "absolute",
           top: "20px",
           left: "50%",
           transform: "translateX(-50%)",
           width: "60%",
-          backgroundColor: "white",
           padding: 2,
           borderRadius: 2,
           boxShadow: 3,
           display: "flex",
           alignItems: "center",
           zIndex: 999,
+          cursor: "text",
         }}
+        onClick={focusInput}
       >
-        <SearchIcon sx={{ marginRight: 2 }} />
-        <InputBase
-          placeholder="Search events or locations..."
+        {/* Hidden input field */}
+        <input
+          type="text"
+          ref={inputRef}
+          className="hidden-input"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           onKeyPress={(e) => e.key === "Enter" && handleSearch()}
-          sx={{ flex: 1 }}
+          autoFocus
         />
+
+        {/* Display characters as Scrabble tiles */}
+        <Box className="scrabble-search-characters" onClick={focusInput}>
+          {search.length === 0 && (
+            <Typography variant="body1" sx={{ color: "#666", marginLeft: 1 }}>
+              Type to search...
+            </Typography>
+          )}
+          {search.split("").map((char, index) => (
+            <Box key={index} className="scrabble-tile">
+              {char.toUpperCase()}
+            </Box>
+          ))}
+        </Box>
+
+        {/* Search and location icons */}
         <IconButton onClick={handleSearch}>
-          <SearchIcon />
+          <SearchIcon className="scrabble-search-icon" />
         </IconButton>
         <IconButton onClick={handleLocationSearch}>
-          {loading ? <CircularProgress size={24} /> : <LocationIcon />}
+          {loading ? (
+            <CircularProgress size={24} />
+          ) : (
+            <LocationIcon className="scrabble-search-icon" />
+          )}
         </IconButton>
       </Box>
     </Box>

@@ -65,7 +65,9 @@ export default function HomePage() {
   const theme = useTheme();
   const [search, setSearch] = useState("");
   const [filteredEvents, setFilteredEvents] = useState(boardGameEvents);
-  const [currentLocation, setCurrentLocation] = useState(null);
+  const [currentLocation, setCurrentLocation] = useState<
+    [number, number] | null
+  >(null);
   const [loading, setLoading] = useState(false);
 
   const handleSearch = () => {

@@ -64,6 +64,53 @@ const openApiDocument: OpenAPIV3.Document = {
             },
         },
         '/api/events/{id}': {
+            put: {
+                summary: 'Update an event',
+                parameters: [
+                    {
+                        name: 'id',
+                        in: 'path',
+                        required: true,
+                        schema: {
+                            type: 'string',
+                        },
+                    },
+                ],
+                requestBody: {
+                    required: true,
+                    content: {
+                        'application/json': {
+                            schema: {
+                                $ref: '#/components/schemas/EventInput',
+                            },
+                        },
+                    },
+                },
+                responses: {
+                    '200': {
+                        description: 'Event updated successfully',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    $ref: '#/components/schemas/Event',
+                                },
+                            },
+                        },
+                    },
+                    '500': {
+                        description: 'Error updating event',
+                        content: {
+                            'application/json': {
+                                schema: {
+                                    $ref: '#/components/schemas/Error',
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+        '/api/events/delete/{id}': {
             delete: {
                 summary: 'Delete an event',
                 parameters: [
@@ -115,9 +162,8 @@ const openApiDocument: OpenAPIV3.Document = {
                         minItems: 2,
                         maxItems: 2,
                     },
-                    date: { type: 'string' },
+                    date: { type: 'string', format: 'date' },
                     participants: { type: 'number' },
-                    image: { type: 'string' },
                     description: { type: 'string' },
                     createdAt: { type: 'string', format: 'date-time' },
                 },
@@ -134,7 +180,7 @@ const openApiDocument: OpenAPIV3.Document = {
                         minItems: 2,
                         maxItems: 2,
                     },
-                    date: { type: 'string' },
+                    date: { type: 'string', format: 'date' },
                     participants: { type: 'number' },
                     image: { type: 'string' },
                     description: { type: 'string' },

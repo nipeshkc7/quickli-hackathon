@@ -65,7 +65,7 @@ const HomePage: React.FC = () => {
     const [joining, setJoining] = useState(false)
     const [emailModalOpen, setEmailModalOpen] = useState(false)
     const [selectedGameType, setSelectedGameType] = useState<string>('All')
-    const [showMap, setShowMap] = useState<boolean>(false)
+    const [showMap, setShowMap] = useState<boolean>(true)
     const mapContainerRef = useRef<HTMLDivElement | null>(null)
     const mapRef = useRef<mapboxgl.Map | null>(null)
     const geocoderContainerRef = useRef<HTMLDivElement | null>(null)
@@ -96,7 +96,7 @@ const HomePage: React.FC = () => {
     const { session, isAuthenticated } = useAuth()
 
     // Add this new state to track the selected event ID
-    const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+    const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
 
     // Fetch events from API
     useEffect(() => {
@@ -241,9 +241,14 @@ const HomePage: React.FC = () => {
                 setSelectedEventId(event._id)
 
                 // Scroll the event into view in the list
-                const eventElement = document.getElementById(`event-${event._id}`)
+                const eventElement = document.getElementById(
+                    `event-${event._id}`
+                )
                 if (eventElement) {
-                    eventElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                    eventElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center',
+                    })
                 }
             })
 
@@ -435,10 +440,48 @@ const HomePage: React.FC = () => {
     useEffect(() => {
         if (mapRef.current) {
             mapRef.current.on('click', () => {
-                setSelectedEventId(null);
-            });
+                setSelectedEventId(null)
+            })
         }
-    }, [mapRef.current]);
+    }, [mapRef.current])
+
+    // Update the banner CSS in the useEffect
+    useEffect(() => {
+        const style = document.createElement('style')
+        style.textContent = `
+            @keyframes floatUpDown {
+                50% { transform: translate(-50%, -10px); }
+                100%, 0% { transform: translate(-50%, 0); }
+            }
+
+            .floating-banner {
+                animation: floatUpDown 2s ease-in-out infinite;
+                background-color: rgba(30, 30, 30, 0.9);
+                border: 2px solid #8B4513;
+                border-radius: 0 0 16px 16px;
+                padding: 16px 32px;
+                position: absolute;
+                top: 0.5%;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 1000;
+                backdrop-filter: blur(4px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                transition: opacity 0.3s ease;
+                width: 80%;
+                text-align: center;
+            }
+
+            .floating-banner:hover {
+                opacity: 0.9;
+            }
+        `
+        document.head.appendChild(style)
+
+        return () => {
+            document.head.removeChild(style)
+        }
+    }, [])
 
     return (
         <Box
@@ -600,11 +643,18 @@ const HomePage: React.FC = () => {
                                     <Card
                                         sx={{
                                             maxWidth: 345,
-                                            backgroundColor: selectedEventId === event._id ? '#2e2e2e' : '#1e1e1e',
+                                            backgroundColor:
+                                                selectedEventId === event._id
+                                                    ? '#2e2e2e'
+                                                    : '#1e1e1e',
                                             color: '#fff',
                                             margin: 'auto',
-                                            transition: 'background-color 0.3s ease',
-                                            border: selectedEventId === event._id ? '2px solid #8B4513' : 'none',
+                                            transition:
+                                                'background-color 0.3s ease',
+                                            border:
+                                                selectedEventId === event._id
+                                                    ? '2px solid #8B4513'
+                                                    : 'none',
                                             '&:hover': {
                                                 backgroundColor: '#2e2e2e',
                                             },
@@ -657,7 +707,8 @@ const HomePage: React.FC = () => {
                                                         'Roboto, sans-serif',
                                                 }}
                                             >
-                                                Participants: {event.participants}
+                                                Participants:{' '}
+                                                {event.participants}
                                             </Typography>
                                             <Button
                                                 variant="contained"
@@ -711,6 +762,27 @@ const HomePage: React.FC = () => {
                             backgroundColor: '#000', // Fallback color
                         }}
                     >
+                        {/* Floating Banner */}
+                        {isAuthenticated && (
+                            <div className="floating-banner">
+                                <Typography
+                                    variant="body1"
+                                    sx={{
+                                        color: '#fff',
+                                        fontFamily: 'Press Start 2P, cursive',
+                                        fontSize: '1.2rem',
+                                        textAlign: 'center',
+                                        whiteSpace: 'nowrap',
+                                        letterSpacing: '0.1em',
+                                        textShadow:
+                                            '2px 2px 4px rgba(0,0,0,0.5)',
+                                    }}
+                                >
+                                    Click anywhere to start an event!
+                                </Typography>
+                            </div>
+                        )}
+
                         <Box
                             ref={mapContainerRef}
                             sx={{
@@ -872,22 +944,13 @@ const HomePage: React.FC = () => {
                             width: '100%',
                             '& .MuiInputBase-root': {
                                 color: '#fff',
-                                backgroundColor: '#333',
+                                backgroundColor: '#1e1e1e',
                             },
                             '& .MuiInputLabel-root': {
                                 color: '#fff',
                             },
                             '& .MuiSvgIcon-root': {
                                 color: '#fff',
-                            },
-                            '& .MuiOutlinedInput-notchedOutline': {
-                                borderColor: '#666',
-                            },
-                            '&:hover .MuiOutlinedInput-notchedOutline': {
-                                borderColor: '#888',
-                            },
-                            '& .Mui-focused .MuiOutlinedInput-notchedOutline': {
-                                borderColor: '#A0522D',
                             },
                         }}
                     />
@@ -986,6 +1049,10 @@ const HomePage: React.FC = () => {
                                 backgroundColor: '#A0522D',
                             },
                             fontFamily: 'Press Start 2P, cursive',
+                            '&[disabled]': {
+                                color: '#e1e1e1',
+                                backgroundColor: '#71706f', // Cool blue for disabled state
+                            },
                         }}
                     >
                         {joining ? 'Joining...' : 'Join'}

@@ -53,6 +53,13 @@ const gameTypes = [
     'Dungeons and Dragons',
 ]
 
+// 1. Remove duplicate type definition - keep only one
+type RegisteredUser = {
+    email: string
+    name: string
+    joinedAt: string
+}
+
 const HomePage: React.FC = () => {
     const [currentLocation, setCurrentLocation] = useState<{
         lat: number
@@ -66,7 +73,7 @@ const HomePage: React.FC = () => {
     const [joining, setJoining] = useState(false)
     const [emailModalOpen, setEmailModalOpen] = useState(false)
     const [selectedGameType, setSelectedGameType] = useState<string>('All')
-    const [showMap, setShowMap] = useState<boolean>(false)
+    const [showMap, setShowMap] = useState<boolean>(true)
     const mapContainerRef = useRef<HTMLDivElement | null>(null)
     const mapRef = useRef<mapboxgl.Map | null>(null)
     const geocoderContainerRef = useRef<HTMLDivElement | null>(null)
@@ -97,8 +104,12 @@ const HomePage: React.FC = () => {
     // Add authentication hook
     const { session, isAuthenticated } = useAuth()
 
-    // Add this new state to track the selected event ID
+    // 2. Remove duplicate state declarations - keep only one
     const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
+    const [detailsModalOpen, setDetailsModalOpen] = useState(false)
+    const [selectedEventDetails, setSelectedEventDetails] =
+        useState<Event | null>(null)
+    const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([])
 
     // Fetch events from API
     useEffect(() => {
@@ -465,23 +476,80 @@ const HomePage: React.FC = () => {
         }
     }, [mapRef.current])
 
+    // Update the banner CSS in the useEffect
+    useEffect(() => {
+        const style = document.createElement('style')
+        style.textContent = `
+                @keyframes floatUpDown {
+                    50% { transform: translate(-50%, -10px); }
+                    100%, 0% { transform: translate(-50%, 0); }
+                }
+                .floating-banner {
+                    animation: floatUpDown 2s ease-in-out infinite;
+                    background-color: rgba(30, 30, 30, 0.9);
+                    border: 2px solid #8B4513;
+                    border-radius: 0 0 16px 16px;
+                    padding: 16px 32px;
+                    position: absolute;
+                    top: 0.5%;
+                    left: 50%;
+                    transform: translateX(-50%);
+                    z-index: 1000;
+                    backdrop-filter: blur(4px);
+                    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                    transition: opacity 0.3s ease;
+                    width: 80%;
+                    text-align: center;
+                }
+                .floating-banner:hover {
+                    opacity: 0.9;
+                }
+            `
+        document.head.appendChild(style)
+        return () => {
+            document.head.removeChild(style)
+        }
+    }, [])
+
+    // Add this function with the other handlers
+    const handleOpenDetails = async (event: Event) => {
+        setSelectedEventDetails(event)
+        setDetailsModalOpen(true)
+
+        try {
+            const response = await fetch(`/api/events/${event._id}/users`)
+            if (response.ok) {
+                const users = await response.json()
+                setRegisteredUsers(users)
+            } else {
+                console.error('Failed to fetch registered users')
+                setRegisteredUsers([])
+            }
+        } catch (error) {
+            console.error('Error fetching registered users:', error)
+            setRegisteredUsers([])
+        }
+    }
+
     return (
         <>
             {isLoading && <LoadingScreen />}
             <Box
                 sx={{
                     width: '100%',
-                    height: '300px', // Adjust height as needed
+                    height: '420px',
                     backgroundImage: "url('./header.jpg')",
                     backgroundSize: 'cover',
-                    backgroundPosition: 'center 20%', // Adjust position to crop top and bottom
+                    backgroundPosition: 'center 20%',
                     backgroundRepeat: 'no-repeat',
                     scale: 0.6,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#fff',
-                    overflow: 'hidden', // Prevents overflow if image size is larger
+                    overflow: 'hidden',
+                    marginRight: showMap ? { xs: '100%', sm: '40%' } : 0, // Add this line
+                    transition: 'margin-right 0.3s', // Add this line
                 }}
             ></Box>
             <Box
@@ -724,27 +792,63 @@ const HomePage: React.FC = () => {
                                                     Participants:{' '}
                                                     {event.participants}
                                                 </Typography>
-                                                <Button
-                                                    variant="contained"
-                                                    color="primary"
-                                                    onClick={() => {
-                                                        setSelectedEvent(event)
-                                                        handleOpenEmailModal()
-                                                    }}
+                                                <Box
                                                     sx={{
-                                                        marginTop: 2,
-                                                        backgroundColor:
-                                                            '#8B4513',
-                                                        '&:hover': {
-                                                            backgroundColor:
-                                                                '#A0522D',
-                                                        },
-                                                        fontFamily:
-                                                            'Press Start 2P, cursive',
+                                                        display: 'flex',
+                                                        gap: 1,
+                                                        mt: 2,
                                                     }}
                                                 >
-                                                    Join Event
-                                                </Button>
+                                                    <Button
+                                                        variant="outlined"
+                                                        onClick={() =>
+                                                            handleOpenDetails(
+                                                                event
+                                                            )
+                                                        }
+                                                        sx={{
+                                                            flex: 1,
+                                                            borderColor:
+                                                                '#8B4513',
+                                                            color: '#fff',
+                                                            '&:hover': {
+                                                                borderColor:
+                                                                    '#A0522D',
+                                                                backgroundColor:
+                                                                    'rgba(139, 69, 19, 0.1)',
+                                                            },
+                                                            fontFamily:
+                                                                'Press Start 2P, cursive',
+                                                            fontSize: '0.7rem',
+                                                        }}
+                                                    >
+                                                        Details
+                                                    </Button>
+                                                    <Button
+                                                        variant="contained"
+                                                        color="primary"
+                                                        onClick={() => {
+                                                            setSelectedEvent(
+                                                                event
+                                                            )
+                                                            handleOpenEmailModal()
+                                                        }}
+                                                        sx={{
+                                                            flex: 1,
+                                                            backgroundColor:
+                                                                '#8B4513',
+                                                            '&:hover': {
+                                                                backgroundColor:
+                                                                    '#A0522D',
+                                                            },
+                                                            fontFamily:
+                                                                'Press Start 2P, cursive',
+                                                            fontSize: '0.7rem',
+                                                        }}
+                                                    >
+                                                        Join
+                                                    </Button>
+                                                </Box>
                                             </CardContent>
                                         </Card>
                                     </Grid>
@@ -777,6 +881,28 @@ const HomePage: React.FC = () => {
                                 backgroundColor: '#000', // Fallback color
                             }}
                         >
+                            {/* Floating Banner */}
+                            {isAuthenticated && (
+                                <div className="floating-banner">
+                                    <Typography
+                                        variant="body1"
+                                        sx={{
+                                            color: '#fff',
+                                            fontFamily:
+                                                'Press Start 2P, cursive',
+                                            fontSize: '1.2rem',
+                                            textAlign: 'center',
+                                            whiteSpace: 'nowrap',
+                                            letterSpacing: '0.1em',
+                                            textShadow:
+                                                '2px 2px 4px rgba(0,0,0,0.5)',
+                                        }}
+                                    >
+                                        Click anywhere to start an event!
+                                    </Typography>
+                                </div>
+                            )}
+
                             <Box
                                 ref={mapContainerRef}
                                 sx={{
@@ -938,7 +1064,7 @@ const HomePage: React.FC = () => {
                                 width: '100%',
                                 '& .MuiInputBase-root': {
                                     color: '#fff',
-                                    backgroundColor: '#333',
+                                    backgroundColor: '#1e1e1e',
                                 },
                                 '& .MuiInputLabel-root': {
                                     color: '#fff',
@@ -946,16 +1072,6 @@ const HomePage: React.FC = () => {
                                 '& .MuiSvgIcon-root': {
                                     color: '#fff',
                                 },
-                                '& .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: '#666',
-                                },
-                                '&:hover .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: '#888',
-                                },
-                                '& .Mui-focused .MuiOutlinedInput-notchedOutline':
-                                    {
-                                        borderColor: '#A0522D',
-                                    },
                             }}
                         />
                         <TextField
@@ -1053,10 +1169,215 @@ const HomePage: React.FC = () => {
                                     backgroundColor: '#A0522D',
                                 },
                                 fontFamily: 'Press Start 2P, cursive',
+                                '&[disabled]': {
+                                    color: '#e1e1e1',
+                                    backgroundColor: '#71706f', // Cool blue for disabled state
+                                },
                             }}
                         >
                             {joining ? 'Joining...' : 'Join'}
                         </Button>
+                    </Box>
+                </Modal>
+
+                {/* Event Details Modal */}
+                <Modal
+                    open={detailsModalOpen}
+                    onClose={() => setDetailsModalOpen(false)}
+                    aria-labelledby="event-details-modal"
+                >
+                    <Box
+                        sx={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            width: { xs: '90%', sm: 600 },
+                            maxHeight: '90vh',
+                            bgcolor: '#1e1e1e',
+                            border: '2px solid #8B4513',
+                            boxShadow: 24,
+                            p: 4,
+                            borderRadius: 2,
+                            overflow: 'auto',
+                            color: '#fff',
+                        }}
+                    >
+                        {selectedEventDetails && (
+                            <>
+                                <Typography
+                                    variant="h4"
+                                    component="h2"
+                                    sx={{
+                                        mb: 3,
+                                        fontFamily: 'Press Start 2P, cursive',
+                                        fontSize: {
+                                            xs: '1.2rem',
+                                            sm: '1.5rem',
+                                        },
+                                        color: '#8B4513',
+                                    }}
+                                >
+                                    {selectedEventDetails.name}
+                                </Typography>
+
+                                <Box sx={{ display: 'flex', mb: 3 }}>
+                                    <Box
+                                        component="img"
+                                        src={getImgSrc(
+                                            selectedEventDetails.gameType
+                                        )}
+                                        sx={{
+                                            width: 100,
+                                            height: 100,
+                                            objectFit: 'contain',
+                                            mr: 3,
+                                            borderRadius: 1,
+                                        }}
+                                    />
+                                    <Box>
+                                        <Typography
+                                            sx={{
+                                                mb: 1,
+                                                fontFamily:
+                                                    'Roboto, sans-serif',
+                                                color: '#ccc',
+                                            }}
+                                        >
+                                            <strong>Game Type:</strong>{' '}
+                                            {selectedEventDetails.gameType}
+                                        </Typography>
+                                        <Typography
+                                            sx={{
+                                                mb: 1,
+                                                fontFamily:
+                                                    'Roboto, sans-serif',
+                                                color: '#ccc',
+                                            }}
+                                        >
+                                            <strong>Location:</strong>{' '}
+                                            {selectedEventDetails.location}
+                                        </Typography>
+                                        <Typography
+                                            sx={{
+                                                mb: 1,
+                                                fontFamily:
+                                                    'Roboto, sans-serif',
+                                                color: '#ccc',
+                                            }}
+                                        >
+                                            <strong>Date:</strong>{' '}
+                                            {new Date(
+                                                selectedEventDetails.date
+                                            ).toLocaleDateString()}
+                                        </Typography>
+                                        <Typography
+                                            sx={{
+                                                mb: 1,
+                                                fontFamily:
+                                                    'Roboto, sans-serif',
+                                                color: '#ccc',
+                                            }}
+                                        >
+                                            <strong>Max Participants:</strong>{' '}
+                                            {selectedEventDetails.participants}
+                                        </Typography>
+                                    </Box>
+                                </Box>
+
+                                <Typography
+                                    variant="h6"
+                                    sx={{
+                                        mb: 2,
+                                        fontFamily: 'Press Start 2P, cursive',
+                                        fontSize: '1rem',
+                                        color: '#8B4513',
+                                    }}
+                                >
+                                    Description
+                                </Typography>
+                                <Typography
+                                    sx={{
+                                        mb: 3,
+                                        fontFamily: 'Roboto, sans-serif',
+                                        color: '#ccc',
+                                    }}
+                                >
+                                    {selectedEventDetails.description ||
+                                        'No description available.'}
+                                </Typography>
+
+                                <Typography
+                                    variant="h6"
+                                    sx={{
+                                        mb: 2,
+                                        fontFamily: 'Press Start 2P, cursive',
+                                        fontSize: '1rem',
+                                        color: '#8B4513',
+                                    }}
+                                >
+                                    Registered Users ({registeredUsers.length})
+                                </Typography>
+                                <Box
+                                    sx={{
+                                        bgcolor: '#2e2e2e',
+                                        borderRadius: 1,
+                                        p: 2,
+                                        maxHeight: 200,
+                                        overflow: 'auto',
+                                    }}
+                                >
+                                    {registeredUsers.length > 0 ? (
+                                        registeredUsers.map((user, index) => (
+                                            <Box
+                                                key={index}
+                                                sx={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    p: 1,
+                                                    borderBottom:
+                                                        index <
+                                                        registeredUsers.length -
+                                                            1
+                                                            ? '1px solid #444'
+                                                            : 'none',
+                                                }}
+                                            >
+                                                <Box
+                                                    sx={{
+                                                        width: 8,
+                                                        height: 8,
+                                                        borderRadius: '50%',
+                                                        bgcolor: '#8B4513',
+                                                        mr: 2,
+                                                    }}
+                                                />
+                                                <Typography
+                                                    sx={{
+                                                        fontFamily:
+                                                            'Roboto, sans-serif',
+                                                        color: '#ccc',
+                                                    }}
+                                                >
+                                                    {user.name} ({user.email})
+                                                </Typography>
+                                            </Box>
+                                        ))
+                                    ) : (
+                                        <Typography
+                                            sx={{
+                                                fontFamily:
+                                                    'Roboto, sans-serif',
+                                                color: '#888',
+                                                textAlign: 'center',
+                                            }}
+                                        >
+                                            No users registered yet
+                                        </Typography>
+                                    )}
+                                </Box>
+                            </>
+                        )}
                     </Box>
                 </Modal>
             </Box>

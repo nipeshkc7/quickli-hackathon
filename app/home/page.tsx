@@ -25,6 +25,10 @@ import 'mapbox-gl/dist/mapbox-gl.css'
 import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css'
 import LoadingScreen from '../components/Loading'
 
+import { useAuth } from '../hooks/useAuth'
+import { DatePicker } from '@mui/x-date-pickers/DatePicker'
+import { MenuItem } from '@mui/material'
+
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!
 
 type Event = {
@@ -70,6 +74,31 @@ const HomePage: React.FC = () => {
     const markersRef = useRef<mapboxgl.Marker[]>([])
 
     const [isLoading, setIsLoading] = useState(true)
+    // Add these new state variables inside the HomePage component
+    const [createEventModalOpen, setCreateEventModalOpen] = useState(false)
+    const [newEventCoordinates, setNewEventCoordinates] = useState<{
+        lat: number
+        lng: number
+    } | null>(null)
+    const [confirmCreateOpen, setConfirmCreateOpen] = useState(false)
+    const [tempPin, setTempPin] = useState<{ lat: number; lng: number } | null>(
+        null
+    )
+
+    // Add event form states
+    const [eventName, setEventName] = useState('')
+    const [locationName, setLocationName] = useState('')
+    const [date, setDate] = useState<Date | null>(null)
+    const [participants, setParticipants] = useState<number | ''>('')
+    const [description, setDescription] = useState('')
+    const [gameType, setGameType] = useState('')
+    const [creating, setCreating] = useState(false)
+
+    // Add authentication hook
+    const { session, isAuthenticated } = useAuth()
+
+    // Add this new state to track the selected event ID
+    const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
 
     // Fetch events from API
     useEffect(() => {
@@ -152,23 +181,37 @@ const HomePage: React.FC = () => {
                     style: 'mapbox://styles/mapbox/dark-v10',
                     center: currentLocation
                         ? [currentLocation.lng, currentLocation.lat]
-                        : [151.2093, -33.8688], // Default center
-                    zoom: 8, // Lower zoom level to show wider area
+                        : [151.2093, -33.8688],
+                    zoom: 8,
                 })
 
                 // Add navigation controls
                 mapRef.current.addControl(new mapboxgl.NavigationControl())
 
+                // Add click handler for creating new events
+                mapRef.current.on('click', (e) => {
+                    if (!isAuthenticated) {
+                        alert('Please sign in to create events')
+                        return
+                    }
+                    const coordinates = {
+                        lat: e.lngLat.lat,
+                        lng: e.lngLat.lng,
+                    }
+                    setNewEventCoordinates(coordinates)
+                    setTempPin(coordinates)
+                    setConfirmCreateOpen(true)
+                })
+
                 // Add markers to the map
                 addMarkers()
             }
 
-            // Delay map initialization to ensure the container is rendered
             setTimeout(() => {
                 initializeMap()
             }, 300)
         }
-    }, [showMap, currentLocation])
+    }, [showMap, currentLocation, isAuthenticated])
 
     // Update markers when filteredEvents change
     useEffect(() => {
@@ -193,15 +236,28 @@ const HomePage: React.FC = () => {
             el.style.width = '32px'
             el.style.height = '32px'
             el.style.backgroundSize = '100%'
-
-            const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(
-                `<h3>${event.name}</h3><p>${event.location}</p><p>Date: ${event.date}</p>`
-            )
+            el.style.cursor = 'pointer'
 
             const marker = new mapboxgl.Marker(el)
                 .setLngLat(event.coordinates)
-                .setPopup(popup)
                 .addTo(mapRef.current!)
+
+            // Add click handler to marker element
+            el.addEventListener('click', (e) => {
+                e.stopPropagation() // Prevent map click
+                setSelectedEventId(event._id)
+
+                // Scroll the event into view in the list
+                const eventElement = document.getElementById(
+                    `event-${event._id}`
+                )
+                if (eventElement) {
+                    eventElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'center',
+                    })
+                }
+            })
 
             markersRef.current.push(marker)
         })
@@ -278,9 +334,156 @@ const HomePage: React.FC = () => {
         }
     }
 
+    const getStockImgSrc = (id: number) => {
+        const stockImages = [
+            './stock-7.png',
+            './stock-1.jpg',
+            './stock-2.jpg',
+            './stock-3.jpg',
+            './stock-4.jpg',
+            './stock-5.jpg',
+            './stock-6.jpg',
+        ]
+        return stockImages[id % stockImages.length]
+    }
+
+    // Add this function to handle event creation
+    const handleCreateEvent = async () => {
+        if (
+            !newEventCoordinates ||
+            !eventName ||
+            !locationName ||
+            !date ||
+            !gameType
+        ) {
+            alert('Please fill in all required fields.')
+            return
+        }
+
+        setCreating(true)
+        try {
+            const payload = {
+                name: eventName,
+                location: locationName,
+                coordinates: [newEventCoordinates.lng, newEventCoordinates.lat],
+                date: date.toISOString(),
+                participants: participants ? Number(participants) : undefined,
+                image: 'placeholder-image-url',
+                description,
+                gameType,
+            }
+
+            const response = await fetch('/api/events', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            })
+
+            if (!response.ok) throw new Error(`Error: ${response.statusText}`)
+
+            // Refresh events list
+            const updatedEvents = await fetch('/api/events').then((res) =>
+                res.json()
+            )
+            setEvents(updatedEvents)
+            setFilteredEvents(updatedEvents)
+
+            // Reset form and clear temp pin
+            setEventName('')
+            setLocationName('')
+            setDate(null)
+            setParticipants('')
+            setDescription('')
+            setGameType('')
+            setCreateEventModalOpen(false)
+            setTempPin(null) // Ensure temp pin is cleared after successful creation
+
+            alert('Event created successfully!')
+        } catch (error) {
+            console.error('Failed to create event:', error)
+            alert('Failed to create event. Please try again.')
+        } finally {
+            setCreating(false)
+        }
+    }
+
+    // First, modify the useEffect for temporary pins to include cleanup
+    useEffect(() => {
+        let tempMarker: mapboxgl.Marker | null = null
+
+        if (tempPin && mapRef.current) {
+            tempMarker = new mapboxgl.Marker()
+                .setLngLat([tempPin.lng, tempPin.lat])
+                .addTo(mapRef.current)
+        }
+
+        // Cleanup function to remove the temporary marker
+        return () => {
+            if (tempMarker) {
+                tempMarker.remove()
+            }
+        }
+    }, [tempPin])
+
+    // Add some CSS to style the popup
+    // You can add this to your styles.css file or create a new style block in your component
+    useEffect(() => {
+        // Add custom styles for mapboxgl popups
+        const style = document.createElement('style')
+        style.textContent = `
+            .mapboxgl-popup-content {
+                background-color: transparent !important;
+                padding: 0 !important;
+                border-radius: 4px !important;
+            }
+            .mapboxgl-popup-close-button {
+                color: #fff !important;
+                font-size: 16px !important;
+                padding: 4px 8px !important;
+                right: 4px !important;
+                top: 4px !important;
+            }
+            .mapboxgl-popup-tip {
+                border-top-color: #1e1e1e !important;
+            }
+        `
+        document.head.appendChild(style)
+
+        return () => {
+            document.head.removeChild(style)
+        }
+    }, [])
+
+    // Add a cleanup for selectedEventId when map is clicked
+    useEffect(() => {
+        if (mapRef.current) {
+            mapRef.current.on('click', () => {
+                setSelectedEventId(null)
+            })
+        }
+    }, [mapRef.current])
+
     return (
         <>
             {isLoading && <LoadingScreen />}
+            <Box
+                sx={{
+                    width: '100%',
+                    height: '300px', // Adjust height as needed
+                    backgroundImage: "url('./header.jpg')",
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center 20%', // Adjust position to crop top and bottom
+                    backgroundRepeat: 'no-repeat',
+                    scale: 0.6,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#fff',
+                    overflow: 'hidden', // Prevents overflow if image size is larger
+                }}
+            ></Box>
             <Box
                 sx={{
                     minHeight: '100vh',
@@ -315,6 +518,7 @@ const HomePage: React.FC = () => {
                                 flexWrap: 'wrap',
                             }}
                         >
+                            {/* Swapped the order of the inputs */}
                             {/* Location Search using Mapbox Geocoder */}
                             <Box
                                 ref={geocoderContainerRef}
@@ -434,7 +638,7 @@ const HomePage: React.FC = () => {
                             }}
                         >
                             <Grid container spacing={2}>
-                                {filteredEvents.map((event) => (
+                                {filteredEvents.map((event, id) => (
                                     <Grid
                                         item
                                         xs={12}
@@ -442,21 +646,34 @@ const HomePage: React.FC = () => {
                                         md={4}
                                         lg={3}
                                         key={event._id}
+                                        id={`event-${event._id}`}
                                     >
                                         <Card
                                             sx={{
                                                 maxWidth: 345,
-                                                backgroundColor: '#1e1e1e',
+                                                backgroundColor:
+                                                    selectedEventId ===
+                                                    event._id
+                                                        ? '#2e2e2e'
+                                                        : '#1e1e1e',
                                                 color: '#fff',
                                                 margin: 'auto',
+                                                transition:
+                                                    'background-color 0.3s ease',
+                                                border:
+                                                    selectedEventId ===
+                                                    event._id
+                                                        ? '2px solid #8B4513'
+                                                        : 'none',
+                                                '&:hover': {
+                                                    backgroundColor: '#2e2e2e',
+                                                },
                                             }}
                                         >
                                             <CardMedia
                                                 component="img"
                                                 height="140"
-                                                image={getImgSrc(
-                                                    event.gameType
-                                                )}
+                                                image={getStockImgSrc(id)}
                                                 alt={event.name}
                                             />
                                             <CardContent>
@@ -464,7 +681,6 @@ const HomePage: React.FC = () => {
                                                     gutterBottom
                                                     variant="h5"
                                                     component="div"
-                                                    title={event.name}
                                                     sx={{
                                                         color: '#fff',
                                                         fontFamily:
@@ -544,6 +760,7 @@ const HomePage: React.FC = () => {
                         mountOnEnter
                         unmountOnExit
                         onExited={() => {
+                            // Clean up the map instance when the slide exits
                             if (mapRef.current) {
                                 mapRef.current.remove()
                                 mapRef.current = null
@@ -557,7 +774,7 @@ const HomePage: React.FC = () => {
                                 top: 0,
                                 right: 0,
                                 height: '100vh',
-                                backgroundColor: '#000',
+                                backgroundColor: '#000', // Fallback color
                             }}
                         >
                             <Box
@@ -570,6 +787,209 @@ const HomePage: React.FC = () => {
                         </Box>
                     </Slide>
                 </Box>
+
+                {/* Confirm Create Modal */}
+                <Modal
+                    open={confirmCreateOpen}
+                    onClose={() => {
+                        setConfirmCreateOpen(false)
+                        setTempPin(null)
+                    }}
+                >
+                    <Box
+                        sx={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            width: 400,
+                            bgcolor: '#1e1e1e',
+                            boxShadow: 24,
+                            p: 4,
+                            borderRadius: 2,
+                            color: '#fff',
+                        }}
+                    >
+                        <Typography variant="h6" component="h2">
+                            Create a new event here?
+                        </Typography>
+                        <Button
+                            onClick={() => {
+                                setConfirmCreateOpen(false)
+                                setCreateEventModalOpen(true)
+                            }}
+                            variant="contained"
+                            sx={{ mt: 2, mr: 2 }}
+                        >
+                            Yes
+                        </Button>
+                        <Button
+                            onClick={() => {
+                                setConfirmCreateOpen(false)
+                                setTempPin(null)
+                            }}
+                            variant="outlined"
+                            sx={{ mt: 2 }}
+                        >
+                            No
+                        </Button>
+                    </Box>
+                </Modal>
+
+                {/* Create Event Modal */}
+                <Modal
+                    open={createEventModalOpen}
+                    onClose={() => {
+                        setCreateEventModalOpen(false)
+                        setTempPin(null)
+                    }}
+                >
+                    <Box
+                        sx={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
+                            width: 600,
+                            bgcolor: '#1e1e1e',
+                            boxShadow: 24,
+                            p: 4,
+                            borderRadius: 2,
+                            maxHeight: '90vh',
+                            overflow: 'auto',
+                            color: '#fff',
+                        }}
+                    >
+                        <Typography variant="h6" gutterBottom>
+                            Create New Event
+                        </Typography>
+                        <TextField
+                            required
+                            fullWidth
+                            label="Event Name"
+                            value={eventName}
+                            onChange={(e) => setEventName(e.target.value)}
+                            sx={{ mb: 2 }}
+                            InputProps={{
+                                style: { color: '#fff' },
+                            }}
+                            InputLabelProps={{
+                                style: { color: '#fff' },
+                            }}
+                        />
+                        <TextField
+                            required
+                            fullWidth
+                            label="Location Name"
+                            value={locationName}
+                            onChange={(e) => setLocationName(e.target.value)}
+                            sx={{ mb: 2 }}
+                            InputProps={{
+                                style: { color: '#fff' },
+                            }}
+                            InputLabelProps={{
+                                style: { color: '#fff' },
+                            }}
+                        />
+                        <TextField
+                            required
+                            select
+                            fullWidth
+                            label="Type of Game"
+                            value={gameType}
+                            onChange={(e) => setGameType(e.target.value)}
+                            sx={{ mb: 2 }}
+                            InputProps={{
+                                style: { color: '#fff' },
+                            }}
+                            InputLabelProps={{
+                                style: { color: '#fff' },
+                            }}
+                        >
+                            {gameTypes
+                                .filter((type) => type !== 'All')
+                                .map((game) => (
+                                    <MenuItem key={game} value={game}>
+                                        {game}
+                                    </MenuItem>
+                                ))}
+                        </TextField>
+                        <TextField
+                            fullWidth
+                            label="Event Description"
+                            multiline
+                            rows={4}
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            sx={{ mb: 2 }}
+                            InputProps={{
+                                style: { color: '#fff' },
+                            }}
+                            InputLabelProps={{
+                                style: { color: '#fff' },
+                            }}
+                        />
+                        <DatePicker
+                            label="Event Date"
+                            value={date}
+                            onChange={(newValue) => setDate(newValue)}
+                            sx={{
+                                mb: 2,
+                                width: '100%',
+                                '& .MuiInputBase-root': {
+                                    color: '#fff',
+                                    backgroundColor: '#333',
+                                },
+                                '& .MuiInputLabel-root': {
+                                    color: '#fff',
+                                },
+                                '& .MuiSvgIcon-root': {
+                                    color: '#fff',
+                                },
+                                '& .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: '#666',
+                                },
+                                '&:hover .MuiOutlinedInput-notchedOutline': {
+                                    borderColor: '#888',
+                                },
+                                '& .Mui-focused .MuiOutlinedInput-notchedOutline':
+                                    {
+                                        borderColor: '#A0522D',
+                                    },
+                            }}
+                        />
+                        <TextField
+                            required
+                            fullWidth
+                            label="Number of Participants"
+                            type="number"
+                            value={participants}
+                            onChange={(e) =>
+                                setParticipants(Number(e.target.value))
+                            }
+                            InputProps={{
+                                inputProps: { min: 1 },
+                                style: { color: '#fff' },
+                            }}
+                            InputLabelProps={{
+                                style: { color: '#fff' },
+                            }}
+                            sx={{ mb: 2 }}
+                        />
+                        <Button
+                            variant="contained"
+                            onClick={handleCreateEvent}
+                            disabled={creating}
+                            fullWidth
+                            sx={{
+                                backgroundColor: '#8B4513',
+                                '&:hover': { backgroundColor: '#A0522D' },
+                            }}
+                        >
+                            {creating ? 'Creating...' : 'Create Event'}
+                        </Button>
+                    </Box>
+                </Modal>
 
                 {/* Email Modal */}
                 <Modal

@@ -536,24 +536,6 @@ const HomePage: React.FC = () => {
             {isLoading && <LoadingScreen />}
             <Box
                 sx={{
-                    width: '100%',
-                    height: '420px',
-                    backgroundImage: "url('./header.jpg')",
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center 20%',
-                    backgroundRepeat: 'no-repeat',
-                    scale: 0.6,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#fff',
-                    overflow: 'hidden',
-                    marginRight: showMap ? { xs: '100%', sm: '40%' } : 0, // Add this line
-                    transition: 'margin-right 0.3s', // Add this line
-                }}
-            ></Box>
-            <Box
-                sx={{
                     minHeight: '100vh',
                     width: '100vw',
                     position: 'relative',
@@ -575,6 +557,26 @@ const HomePage: React.FC = () => {
                             padding: { xs: 2, sm: 3, md: 4 },
                         }}
                     >
+                        <Box
+                            sx={{
+                                width: '100%',
+                                height: '300px',
+                                backgroundImage: "url('./header.jpg')",
+                                backgroundSize: 'cover',
+                                backgroundPosition: 'center 20%',
+                                backgroundRepeat: 'no-repeat',
+                                scale: 0.6,
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: '#fff',
+                                overflow: 'hidden',
+                                marginRight: showMap
+                                    ? { xs: '100%', sm: '40%' }
+                                    : 0, // Add this line
+                                transition: 'margin-right 0.3s', // Add this line
+                            }}
+                        />
                         {/* Search Bar */}
                         <Box
                             sx={{

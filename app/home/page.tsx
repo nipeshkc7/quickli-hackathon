@@ -18,7 +18,7 @@ import {
     Slide,
 } from '@mui/material'
 import { Search as SearchIcon } from '@mui/icons-material'
-import { Image } from 'next/image'
+import Image from 'next/image'
 
 import mapboxgl from 'mapbox-gl'
 import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder'
@@ -273,6 +273,7 @@ const HomePage: React.FC = () => {
 
     const getStockImgSrc = (id: number) => {
         const stockImages = [
+            './stock-7.png',
             './stock-1.jpg',
             './stock-2.jpg',
             './stock-3.jpg',

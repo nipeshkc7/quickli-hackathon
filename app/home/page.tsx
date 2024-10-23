@@ -119,7 +119,7 @@ const HomePage: React.FC = () => {
                 accessToken: mapboxgl.accessToken,
                 placeholder: 'Search for location',
                 marker: false,
-                mapboxgl: mapboxgl,
+                mapboxgl: mapboxgl as any,
             })
             geocoderRef.current.addTo(geocoderContainerRef.current)
 

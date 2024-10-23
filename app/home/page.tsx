@@ -87,7 +87,9 @@ const HomePage: React.FC = () => {
             } catch (error) {
                 console.error('Error fetching events:', error)
             } finally {
-                setIsLoading(false)
+                setTimeout(() => {
+                    setIsLoading(false)
+                }, 1000)
             }
         }
 

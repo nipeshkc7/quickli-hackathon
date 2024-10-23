@@ -271,6 +271,18 @@ const HomePage: React.FC = () => {
         }
     }
 
+    const getStockImgSrc = (id: number) => {
+        const stockImages = [
+            './stock-1.jpg',
+            './stock-2.jpg',
+            './stock-3.jpg',
+            './stock-4.jpg',
+            './stock-5.jpg',
+            './stock-6.jpg',
+        ]
+        return stockImages[id % stockImages.length]
+    }
+
     return (
         <>
             <Box
@@ -443,7 +455,7 @@ const HomePage: React.FC = () => {
                             }}
                         >
                             <Grid container spacing={2}>
-                                {filteredEvents.map((event) => (
+                                {filteredEvents.map((event, id) => (
                                     <Grid
                                         item
                                         xs={12}
@@ -463,9 +475,10 @@ const HomePage: React.FC = () => {
                                             <CardMedia
                                                 component="img"
                                                 height="140"
-                                                image={getImgSrc(
-                                                    event.gameType
-                                                )}
+                                                // image={getImgSrc(
+                                                //     event.gameType
+                                                // )}
+                                                image={getStockImgSrc(id)}
                                                 alt={event.name}
                                             />
                                             <CardContent>

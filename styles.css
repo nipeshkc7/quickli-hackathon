@@ -1,15 +1,15 @@
-/* Scrabble Tile Styling */
+/* styles.css */
 
-/* Import fun fonts */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display&family=Press+Start+2P&display=swap');
+/* Import fonts */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display&family=Press+Start+2P&family=Roboto&display=swap');
 
 /* General styles */
 body {
-    margin: 0;
-    padding: 0;
-    font-family: 'Playfair Display', serif;
-    background-color: #121212;
-    color: #FFFFFF;
+  margin: 0;
+  padding: 0;
+  font-family: 'Playfair Display', serif;
+  background-color: #121212;
+  color: #FFFFFF;
 }
 
 /* Adjust MUI components */
@@ -29,107 +29,44 @@ body {
   font-family: 'Press Start 2P', cursive !important;
 }
 
+/* Card styles */
+.MuiCard-root {
+  background-color: #1e1e1e !important;
+  color: #fff !important;
+}
 
-.scrabble-tile {
-    display: inline-block;
-    background-color: #f3e5ab;
-    border-radius: 4px;
-    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
-    padding: 8px 12px;
-    margin: 2px;
-    font-family: 'Roboto', sans-serif;
-    font-weight: bold;
-    color: #333;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    animation: tile-appear 0.3s ease-out forwards;
-  }
-  
-  .scrabble-tile:hover {
-    transform: translateY(-3px);
-    box-shadow: 4px 4px 12px rgba(0, 0, 0, 0.3);
-  }
-  
-  @keyframes tile-appear {
-    0% {
-      opacity: 0;
-      transform: scale(0.5);
-    }
-    100% {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-  
-  /* Hidden Input Field */
-  .hidden-input {
-    position: absolute;
-    opacity: 0;
-    pointer-events: none;
-    z-index: -1;
-  }
-  
-  /* Search Bar Styling */
-  .scrabble-search-bar {
-    
-    display: flex;
-    background-color: #d8bf82;
-    padding: 10px;
-    border-radius: 8px;
-    box-shadow: 3px 3px 10px rgba(0, 0, 0, 0.2);
-    transition: background-color 0.3s ease;
-    align-items: center;
-    justify-content: center; /* Center horizontally */
-  }
-  
-  .scrabble-search-bar:hover {
-    background-color: #d2b47d;
-  }
-  
-  .scrabble-search-characters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-    align-items: center; /* Center vertically */
-    justify-content: center; /* Center horizontally */
-    flex: 1;
-    position: relative;
-  }
-  
-  /* Placeholder Text Styling */
-  .placeholder-text {
-    color: #666;
-    font-size: 18px;
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-  }
-  
-  /* Typing Cursor */
-  .typing-cursor {
-    border-right: 2px solid #333;
-    animation: blink-cursor 0.7s steps(44) infinite normal;
-    margin-left: 2px;
-    height: 36px;
-    display: inline-block;
-  }
-  
-  @keyframes blink-cursor {
-    0% {
-      border-right-color: #333;
-    }
-    49% {
-      border-right-color: #333;
-    }
-    50% {
-      border-right-color: transparent;
-    }
-    100% {
-      border-right-color: transparent;
-    }
-  }
+.MuiCardContent-root {
+  font-family: 'Roboto', sans-serif !important;
+}
 
+.MuiTypography-root {
+  font-family: 'Roboto', sans-serif !important;
+}
 
-  /* Adjust the search bar */
+/* Modal styles */
+.MuiModal-root {
+  font-family: 'Roboto', sans-serif !important;
+}
+
+.MuiTextField-root {
+  font-family: 'Roboto', sans-serif !important;
+}
+
+/* Mapbox Geocoder styles */
+.mapboxgl-ctrl-geocoder {
+  width: 100% !important;
+  max-width: 100% !important;
+  background-color: #1e1e1e !important;
+  color: #fff !important;
+  border-radius: 4px !important;
+  border: 1px solid #8B4513 !important;
+}
+
+.mapboxgl-ctrl-geocoder--input {
+  color: #fff !important;
+}
+
+/* Search bar styling */
 .search-bar {
   margin-top: 20px;
   display: flex;
@@ -137,27 +74,4 @@ body {
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
-}
-
-/* Adjust card styles */
-.MuiCard-root {
-  background-color: #1e1e1e !important;
-  color: #fff !important;
-}
-
-.MuiCardContent-root {
-  font-family: 'Playfair Display', serif !important;
-}
-
-.MuiTypography-root {
-  font-family: 'Playfair Display', serif !important;
-}
-
-/* Adjust modal styles */
-.MuiModal-root {
-  font-family: 'Playfair Display', serif !important;
-}
-
-.MuiTextField-root {
-  font-family: 'Playfair Display', serif !important;
 }

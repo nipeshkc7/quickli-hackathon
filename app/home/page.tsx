@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import '../../styles.css' // Import your CSS for styles
 import {
     Box,
@@ -15,8 +15,16 @@ import {
     Tabs,
     Tab,
     IconButton,
+    Slide,
 } from '@mui/material'
 import { Search as SearchIcon } from '@mui/icons-material'
+
+import mapboxgl from 'mapbox-gl'
+import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder'
+import 'mapbox-gl/dist/mapbox-gl.css'
+import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css'
+
+mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!
 
 type Event = {
     id: number
@@ -107,12 +115,16 @@ const HomePage: React.FC = () => {
     const [filteredEvents, setFilteredEvents] =
         useState<Event[]>(boardGameEvents)
     const [searchTerm, setSearchTerm] = useState('')
-    const [location, setLocation] = useState('')
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
     const [email, setEmail] = useState<string>('')
     const [joining, setJoining] = useState(false)
     const [emailModalOpen, setEmailModalOpen] = useState(false)
     const [selectedGameType, setSelectedGameType] = useState<string>('All')
+    const [showMap, setShowMap] = useState<boolean>(false)
+    const mapContainerRef = useRef<HTMLDivElement | null>(null)
+    const mapRef = useRef<mapboxgl.Map | null>(null)
+    const geocoderContainerRef = useRef<HTMLDivElement | null>(null)
+    const geocoderRef = useRef<MapboxGeocoder | null>(null)
 
     // Handle search filtering
     const handleSearch = () => {
@@ -120,10 +132,8 @@ const HomePage: React.FC = () => {
             event.name.toLowerCase().includes(searchTerm.toLowerCase())
         )
 
-        if (location) {
-            filtered = filtered.filter((event) =>
-                event.location.toLowerCase().includes(location.toLowerCase())
-            )
+        if (currentLocation) {
+            // Optional: Filter events based on proximity to currentLocation
         }
 
         if (selectedGameType !== 'All') {
@@ -138,17 +148,62 @@ const HomePage: React.FC = () => {
     // Update filtered events when search input changes
     useEffect(() => {
         handleSearch()
-    }, [searchTerm, location, selectedGameType])
+    }, [searchTerm, currentLocation, selectedGameType])
 
-    // Fetch user location on mount
+    // Initialize Mapbox Geocoder
     useEffect(() => {
-        if (typeof window !== 'undefined' && navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition((position) => {
-                setCurrentLocation({
-                    lat: position.coords.latitude,
-                    lng: position.coords.longitude,
-                })
+        if (geocoderContainerRef.current && !geocoderRef.current) {
+            geocoderRef.current = new MapboxGeocoder({
+                accessToken: mapboxgl.accessToken,
+                placeholder: 'Search for location',
+                marker: false,
+                mapboxgl: mapboxgl,
             })
+            geocoderRef.current.addTo(geocoderContainerRef.current)
+
+            geocoderRef.current.on('result', (e) => {
+                const coords = e.result.center
+                setCurrentLocation({ lng: coords[0], lat: coords[1] })
+                setShowMap(true)
+            })
+        }
+    }, [])
+
+    // Initialize or update the map when showMap or currentLocation changes
+    useEffect(() => {
+        if (showMap && mapContainerRef.current) {
+            // Ensure the map container has dimensions before initializing the map
+            const initializeMap = () => {
+                if (mapRef.current) {
+                    mapRef.current.remove()
+                }
+
+                mapRef.current = new mapboxgl.Map({
+                    container: mapContainerRef.current!,
+                    style: 'mapbox://styles/mapbox/dark-v10',
+                    center: currentLocation
+                        ? [currentLocation.lng, currentLocation.lat]
+                        : [151.2093, -33.8688], // Default center
+                    zoom: 12,
+                })
+
+                // Add navigation controls if needed
+                mapRef.current.addControl(new mapboxgl.NavigationControl())
+            }
+
+            // Delay map initialization to ensure the container is rendered
+            setTimeout(() => {
+                initializeMap()
+            }, 300)
+        }
+    }, [showMap, currentLocation])
+
+    // Clean up map instance when component unmounts
+    useEffect(() => {
+        return () => {
+            if (mapRef.current) {
+                mapRef.current.remove()
+            }
         }
     }, [])
 
@@ -222,216 +277,272 @@ const HomePage: React.FC = () => {
                 position: 'relative',
                 backgroundColor: '#121212',
                 color: '#FFFFFF',
-                padding: { xs: 2, sm: 3, md: 4 },
                 fontFamily: 'Playfair Display, serif',
+                overflowX: 'hidden', // Prevent horizontal scroll
             }}
         >
-            {/* Search Bar */}
-            <Box
-                sx={{
-                    marginTop: '20px',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    gap: 2,
-                    flexWrap: 'wrap',
-                }}
-            >
-                <TextField
-                    label="Search Events"
-                    variant="outlined"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    InputProps={{
-                        style: { color: '#fff', backgroundColor: '#1e1e1e' },
-                    }}
-                    InputLabelProps={{
-                        style: { color: '#fff' },
-                    }}
+            <Box sx={{ display: 'flex' }}>
+                {/* Main Content */}
+                <Box
                     sx={{
-                        width: { xs: '100%', sm: '300px' },
-                        '& .MuiOutlinedInput-root': {
-                            '& fieldset': {
-                                borderColor: '#8B4513',
-                            },
-                            '&:hover fieldset': {
-                                borderColor: '#A0522D',
-                            },
-                            '&.Mui-focused fieldset': {
-                                borderColor: '#A0522D',
-                            },
-                        },
-                    }}
-                />
-                <TextField
-                    label="Location"
-                    variant="outlined"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
-                    InputProps={{
-                        style: { color: '#fff', backgroundColor: '#1e1e1e' },
-                    }}
-                    InputLabelProps={{
-                        style: { color: '#fff' },
-                    }}
-                    sx={{
-                        width: { xs: '100%', sm: '300px' },
-                        '& .MuiOutlinedInput-root': {
-                            '& fieldset': {
-                                borderColor: '#8B4513',
-                            },
-                            '&:hover fieldset': {
-                                borderColor: '#A0522D',
-                            },
-                            '&.Mui-focused fieldset': {
-                                borderColor: '#A0522D',
-                            },
-                        },
-                    }}
-                />
-                <IconButton onClick={handleSearch} sx={{ color: '#fff' }}>
-                    <SearchIcon />
-                </IconButton>
-            </Box>
-
-            {/* Subcategories Tab */}
-            <Box
-                sx={{
-                    marginTop: '20px',
-                    display: 'flex',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                }}
-            >
-                <Tabs
-                    value={selectedGameType}
-                    onChange={(e, newValue) => setSelectedGameType(newValue)}
-                    indicatorColor="primary"
-                    textColor="inherit"
-                    variant="scrollable"
-                    scrollButtons="auto"
-                    sx={{
-                        maxWidth: '80%',
-                        margin: '0 auto',
-                        '& .MuiTabs-flexContainer': {
-                            justifyContent: 'center',
-                        },
+                        flexGrow: 1,
+                        transition: 'margin-right 0.3s',
+                        marginRight: showMap ? { xs: '100%', sm: '40%' } : 0,
+                        padding: { xs: 2, sm: 3, md: 4 },
                     }}
                 >
-                    {gameTypes.map((type) => (
-                        <Tab
-                            key={type}
-                            value={type}
-                            label={type}
-                            icon={
-                                <img
-                                    src={getImgSrc(type)}
-                                    alt={type}
-                                    style={{
-                                        width: '24px',
-                                        height: '24px',
-                                        marginBottom: '4px',
-                                    }}
-                                />
-                            }
-                            iconPosition="top"
+                    {/* Search Bar */}
+                    <Box
+                        sx={{
+                            marginTop: '20px',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            gap: 2,
+                            flexWrap: 'wrap',
+                        }}
+                    >
+                        <TextField
+                            label="Search Events"
+                            variant="outlined"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            InputProps={{
+                                style: {
+                                    color: '#fff',
+                                    backgroundColor: '#1e1e1e',
+                                },
+                            }}
+                            InputLabelProps={{
+                                style: { color: '#fff' },
+                            }}
                             sx={{
-                                color: '#fff',
-                                textTransform: 'none',
-                                minWidth: '80px',
-                                fontFamily: 'Press Start 2P, cursive',
+                                width: { xs: '100%', sm: '300px' },
+                                '& .MuiOutlinedInput-root': {
+                                    '& fieldset': {
+                                        borderColor: '#8B4513',
+                                    },
+                                    '&:hover fieldset': {
+                                        borderColor: '#A0522D',
+                                    },
+                                    '&.Mui-focused fieldset': {
+                                        borderColor: '#A0522D',
+                                    },
+                                },
                             }}
                         />
-                    ))}
-                </Tabs>
-            </Box>
 
-            {/* Gallery Grid */}
-            <Box sx={{ marginTop: '20px', paddingX: { xs: 0, sm: 2 } }}>
-                <Grid container spacing={2}>
-                    {filteredEvents.map((event) => (
-                        <Grid item xs={12} sm={6} md={4} lg={3} key={event.id}>
-                            <Card
-                                sx={{
-                                    maxWidth: 345,
+                        {/* Location Search using Mapbox Geocoder */}
+                        <Box
+                            ref={geocoderContainerRef}
+                            sx={{
+                                width: { xs: '100%', sm: '300px' },
+                                '& .mapboxgl-ctrl-geocoder': {
+                                    width: '100%',
+                                    maxWidth: '100%',
                                     backgroundColor: '#1e1e1e',
                                     color: '#fff',
-                                    margin: 'auto',
-                                }}
-                            >
-                                <CardMedia
-                                    component="img"
-                                    height="140"
-                                    image={getImgSrc(event.gameType)}
-                                    alt={event.name}
+                                    borderRadius: '4px',
+                                    border: '1px solid #8B4513',
+                                },
+                                '& .mapboxgl-ctrl-geocoder--input': {
+                                    color: '#fff',
+                                },
+                            }}
+                        />
+                        <IconButton
+                            onClick={handleSearch}
+                            sx={{ color: '#fff' }}
+                        >
+                            <SearchIcon />
+                        </IconButton>
+                    </Box>
+
+                    {/* Subcategories Tab */}
+                    <Box
+                        sx={{
+                            marginTop: '20px',
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                        }}
+                    >
+                        <Tabs
+                            value={selectedGameType}
+                            onChange={(e, newValue) =>
+                                setSelectedGameType(newValue)
+                            }
+                            indicatorColor="primary"
+                            textColor="inherit"
+                            variant="scrollable"
+                            scrollButtons="auto"
+                            sx={{
+                                maxWidth: '80%',
+                                margin: '0 auto',
+                                '& .MuiTabs-flexContainer': {
+                                    justifyContent: 'center',
+                                },
+                            }}
+                        >
+                            {gameTypes.map((type) => (
+                                <Tab
+                                    key={type}
+                                    value={type}
+                                    label={type}
+                                    icon={
+                                        <img
+                                            src={getImgSrc(type)}
+                                            alt={type}
+                                            style={{
+                                                width: '24px',
+                                                height: '24px',
+                                                marginBottom: '4px',
+                                            }}
+                                        />
+                                    }
+                                    iconPosition="top"
+                                    sx={{
+                                        color: '#fff',
+                                        textTransform: 'none',
+                                        minWidth: '80px',
+                                        fontFamily: 'Press Start 2P, cursive',
+                                    }}
                                 />
-                                <CardContent>
-                                    <Typography
-                                        gutterBottom
-                                        variant="h5"
-                                        component="div"
+                            ))}
+                        </Tabs>
+                    </Box>
+
+                    {/* Gallery Grid */}
+                    <Box sx={{ marginTop: '20px', paddingX: { xs: 0, sm: 2 } }}>
+                        <Grid container spacing={2}>
+                            {filteredEvents.map((event) => (
+                                <Grid
+                                    item
+                                    xs={12}
+                                    sm={6}
+                                    md={4}
+                                    lg={3}
+                                    key={event.id}
+                                >
+                                    <Card
                                         sx={{
+                                            maxWidth: 345,
+                                            backgroundColor: '#1e1e1e',
                                             color: '#fff',
-                                            fontFamily:
-                                                'Press Start 2P, cursive',
+                                            margin: 'auto',
                                         }}
                                     >
-                                        {event.name}
-                                    </Typography>
-                                    <Typography
-                                        variant="body2"
-                                        sx={{
-                                            color: '#ccc',
-                                            fontFamily:
-                                                'Playfair Display, serif',
-                                        }}
-                                    >
-                                        Location: {event.location}
-                                    </Typography>
-                                    <Typography
-                                        variant="body2"
-                                        sx={{
-                                            color: '#ccc',
-                                            fontFamily:
-                                                'Playfair Display, serif',
-                                        }}
-                                    >
-                                        Date: {event.date}
-                                    </Typography>
-                                    <Typography
-                                        variant="body2"
-                                        sx={{
-                                            color: '#ccc',
-                                            fontFamily:
-                                                'Playfair Display, serif',
-                                        }}
-                                    >
-                                        Participants: {event.participants}
-                                    </Typography>
-                                    <Button
-                                        variant="contained"
-                                        color="primary"
-                                        onClick={() => {
-                                            setSelectedEvent(event)
-                                            handleOpenEmailModal()
-                                        }}
-                                        sx={{
-                                            marginTop: 2,
-                                            backgroundColor: '#8B4513', // Board game themed color
-                                            '&:hover': {
-                                                backgroundColor: '#A0522D',
-                                            },
-                                            fontFamily:
-                                                'Press Start 2P, cursive',
-                                        }}
-                                    >
-                                        Join Event
-                                    </Button>
-                                </CardContent>
-                            </Card>
+                                        <CardMedia
+                                            component="img"
+                                            height="140"
+                                            image={getImgSrc(event.gameType)}
+                                            alt={event.name}
+                                        />
+                                        <CardContent>
+                                            <Typography
+                                                gutterBottom
+                                                variant="h5"
+                                                component="div"
+                                                sx={{
+                                                    color: '#fff',
+                                                    fontFamily:
+                                                        'Press Start 2P, cursive',
+                                                }}
+                                            >
+                                                {event.name}
+                                            </Typography>
+                                            <Typography
+                                                variant="body2"
+                                                sx={{
+                                                    color: '#ccc',
+                                                    fontFamily:
+                                                        'Roboto, sans-serif',
+                                                }}
+                                            >
+                                                Location: {event.location}
+                                            </Typography>
+                                            <Typography
+                                                variant="body2"
+                                                sx={{
+                                                    color: '#ccc',
+                                                    fontFamily:
+                                                        'Roboto, sans-serif',
+                                                }}
+                                            >
+                                                Date: {event.date}
+                                            </Typography>
+                                            <Typography
+                                                variant="body2"
+                                                sx={{
+                                                    color: '#ccc',
+                                                    fontFamily:
+                                                        'Roboto, sans-serif',
+                                                }}
+                                            >
+                                                Participants:{' '}
+                                                {event.participants}
+                                            </Typography>
+                                            <Button
+                                                variant="contained"
+                                                color="primary"
+                                                onClick={() => {
+                                                    setSelectedEvent(event)
+                                                    handleOpenEmailModal()
+                                                }}
+                                                sx={{
+                                                    marginTop: 2,
+                                                    backgroundColor: '#8B4513', // Board game themed color
+                                                    '&:hover': {
+                                                        backgroundColor:
+                                                            '#A0522D',
+                                                    },
+                                                    fontFamily:
+                                                        'Press Start 2P, cursive',
+                                                }}
+                                            >
+                                                Join Event
+                                            </Button>
+                                        </CardContent>
+                                    </Card>
+                                </Grid>
+                            ))}
                         </Grid>
-                    ))}
-                </Grid>
+                    </Box>
+                </Box>
+
+                {/* Map Container */}
+                <Slide
+                    direction="left"
+                    in={showMap}
+                    mountOnEnter
+                    unmountOnExit
+                    onExited={() => {
+                        // Clean up the map instance when the slide exits
+                        if (mapRef.current) {
+                            mapRef.current.remove()
+                            mapRef.current = null
+                        }
+                    }}
+                >
+                    <Box
+                        sx={{
+                            width: { xs: '100%', sm: '40%' },
+                            position: 'fixed',
+                            top: 0,
+                            right: 0,
+                            height: '100vh',
+                            backgroundColor: '#000', // Fallback color
+                        }}
+                    >
+                        <Box
+                            ref={mapContainerRef}
+                            sx={{
+                                width: '100%',
+                                height: '100%',
+                            }}
+                        />
+                    </Box>
+                </Slide>
             </Box>
 
             {/* Email Modal */}
@@ -475,7 +586,7 @@ const HomePage: React.FC = () => {
                             marginTop: 2,
                             input: { color: '#fff' },
                             label: { color: '#fff' },
-                            fontFamily: 'Playfair Display, serif',
+                            fontFamily: 'Roboto, sans-serif',
                         }}
                         InputProps={{
                             style: {

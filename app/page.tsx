@@ -13,96 +13,29 @@ import { Button } from '@mui/material'
 import { Modal } from '@mui/material'
 import { TextField } from '@mui/material'
 
-type Event = {
-    id: number
-    name: string
-    location: string
-    coordinates: {
-        lat: number
-        lng: number
-    }
-    date: string
-    participants: number
-    gameType: string
-}
-
-// Sample event data
-const boardGameEvents: Event[] = [
-    {
-        id: 1,
-        name: 'Catan Night',
-        location: 'City Library, Sydney',
-        coordinates: { lat: -33.8688, lng: 151.2093 },
-        date: 'Oct 25, 2024',
-        participants: 10,
-        gameType: 'Catan',
-    },
-    {
-        id: 2,
-        name: 'Ticket to Ride Tournament',
-        location: 'Community Hall, Newcastle',
-        coordinates: { lat: -32.9283, lng: 151.7817 },
-        date: 'Nov 1, 2024',
-        participants: 20,
-        gameType: 'Chess',
-    },
-    {
-        id: 3,
-        name: 'Pandemic Game Night',
-        location: 'Board Game Café, Wollongong',
-        coordinates: { lat: -34.4278, lng: 150.8931 },
-        date: 'Nov 3, 2024',
-        participants: 12,
-        gameType: 'Battleship',
-    },
-    {
-        id: 4,
-        name: 'Carcassonne Championship',
-        location: 'Civic Center, Dubbo',
-        coordinates: { lat: -32.2569, lng: 148.601 },
-        date: 'Nov 8, 2024',
-        participants: 15,
-        gameType: 'Monopoly',
-    },
-    {
-        id: 5,
-        name: 'Root: The Board Game Meetup',
-        location: 'Gaming Hub, Albury',
-        coordinates: { lat: -36.0737, lng: 146.9135 },
-        date: 'Nov 10, 2024',
-        participants: 18,
-        gameType: 'Scrabble',
-    },
-    {
-        id: 5,
-        name: 'Ultimate DnD Campaign',
-        location: 'Gaming Hub, Albury',
-        coordinates: { lat: -36.0737, lng: 146.9135 },
-        date: 'Nov 10, 2024',
-        participants: 18,
-        gameType: 'Dungeons and Dragons',
-    },
-]
+import { EventType } from '@/app/lib/types/airdnd'
+import { generateRandomName } from '@/app/lib/utilities'
 
 const HomePage: React.FC = () => {
     const [currentLocation, setCurrentLocation] = useState<{
         lat: number
         lng: number
     } | null>(null)
-    const [filteredEvents, setFilteredEvents] =
-        useState<Event[]>(boardGameEvents)
+    const [filteredEvents, setFilteredEvents] = useState<EventType[]>([])
     const [search, setSearch] = useState('')
     const [loading, setLoading] = useState(false)
-    const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
+    const [selectedEvent, setSelectedEvent] = useState<EventType | null>(null)
     const [activeMarker, setActiveMarker] = useState<number | null>(null)
     const [email, setEmail] = useState<string>('')
     const [joining, setJoining] = useState(false)
     const [emailModalOpen, setEmailModalOpen] = useState(false)
     const inputRef = useRef<HTMLInputElement>(null)
+    const [events, setEvents] = useState<EventType[]>([])
+    const [isLoading, setIsLoading] = useState(true)
 
     // Handle search filtering
     const handleSearch = () => {
-        const filtered = boardGameEvents.filter((event) =>
+        const filtered = events.filter((event) =>
             event.name.toLowerCase().includes(search.toLowerCase())
         )
         setFilteredEvents(filtered)
@@ -142,6 +75,27 @@ const HomePage: React.FC = () => {
         }
     }, [])
 
+    useEffect(() => {
+        const fetchEvents = async () => {
+            try {
+                const response = await fetch('/api/events')
+                if (!response.ok) {
+                    throw new Error('Failed to fetch events')
+                }
+                const data = await response.json()
+                setEvents(data)
+                setFilteredEvents(data) // Initialize filtered events with all events
+            } catch (error) {
+                console.error('Error fetching events:', error)
+                // Optionally, you can set an error state here to show an error message to the user
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        fetchEvents()
+    }, [])
+
     // Focus the hidden input when the search bar is clicked
     const focusInput = () => {
         inputRef.current?.focus()
@@ -169,7 +123,7 @@ const HomePage: React.FC = () => {
                 },
                 body: JSON.stringify({
                     email,
-                    name: 'John Doe', // Replace with dynamic user name
+                    name: generateRandomName(),
                     eventName: selectedEvent.name,
                     eventDate: selectedEvent.date,
                     eventTime: '18:00', // Example time, replace as needed
@@ -221,37 +175,49 @@ const HomePage: React.FC = () => {
                 mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
                 onClick={() => setSelectedEvent(null)} // Deselect event when clicking on the map
             >
-                {/* Display event markers with images */}
-                {filteredEvents.map((event) => (
-                    <Marker
-                        key={event.id}
-                        longitude={event.coordinates.lng}
-                        latitude={event.coordinates.lat}
-                        anchor="bottom"
-                        onClick={(e) => {
-                            // Prevent the map's onClick from triggering
-                            e.originalEvent.stopPropagation()
-                            setSelectedEvent(event)
-                            setActiveMarker(event.id) // Set the active marker ID for animation
+                {isLoading ? (
+                    <Box
+                        sx={{
+                            position: 'absolute',
+                            top: '50%',
+                            left: '50%',
+                            transform: 'translate(-50%, -50%)',
                         }}
                     >
-                        <img
-                            src={getImgSrc(event.gameType)}
-                            alt={event.gameType}
-                            className={
-                                activeMarker === event.id ? 'bounce-once' : ''
-                            }
-                            style={{
-                                width: '50px',
-                                height: '50px',
-                                cursor: 'pointer',
-                                transform: 'translate(-50%, -100%)',
-                                objectFit: 'cover',
+                        <CircularProgress />
+                    </Box>
+                ) : (
+                    filteredEvents.map((event, index) => (
+                        <Marker
+                            key={index}
+                            longitude={event.coordinates.lng}
+                            latitude={event.coordinates.lat}
+                            anchor="bottom"
+                            onClick={(e) => {
+                                // Prevent the map's onClick from triggering
+                                e.originalEvent.stopPropagation()
+                                setSelectedEvent(event)
+                                setActiveMarker(index) // Set the active marker ID for animation, set by order in index, will need to check how we sort the filtered events
                             }}
-                            onAnimationEnd={() => setActiveMarker(null)} // Clear animation state after animation completes
-                        />
-                    </Marker>
-                ))}
+                        >
+                            <img
+                                src={getImgSrc(event.gameType)}
+                                alt={event.gameType}
+                                className={
+                                    activeMarker === index ? 'bounce-once' : ''
+                                }
+                                style={{
+                                    width: '50px',
+                                    height: '50px',
+                                    cursor: 'pointer',
+                                    transform: 'translate(-50%, -100%)',
+                                    objectFit: 'cover',
+                                }}
+                                onAnimationEnd={() => setActiveMarker(null)} // Clear animation state after animation completes
+                            />
+                        </Marker>
+                    ))
+                )}
 
                 {/* Show user's current location */}
                 {currentLocation && (

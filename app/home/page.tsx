@@ -27,75 +27,16 @@ import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css'
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN!
 
 type Event = {
-    id: number
+    _id: string
     name: string
     location: string
-    coordinates: {
-        lat: number
-        lng: number
-    }
+    coordinates: [number, number]
+    gameType: string
     date: string
     participants: number
-    gameType: string
+    description: string
+    createdAt: string
 }
-
-// Sample event data
-const boardGameEvents: Event[] = [
-    {
-        id: 1,
-        name: 'Catan Night',
-        location: 'City Library, Sydney',
-        coordinates: { lat: -33.8688, lng: 151.2093 },
-        date: 'Oct 25, 2024',
-        participants: 10,
-        gameType: 'Catan',
-    },
-    {
-        id: 2,
-        name: 'Ticket to Ride Tournament',
-        location: 'Community Hall, Newcastle',
-        coordinates: { lat: -32.9283, lng: 151.7817 },
-        date: 'Nov 1, 2024',
-        participants: 20,
-        gameType: 'Chess',
-    },
-    {
-        id: 3,
-        name: 'Pandemic Game Night',
-        location: 'Board Game Café, Wollongong',
-        coordinates: { lat: -34.4278, lng: 150.8931 },
-        date: 'Nov 3, 2024',
-        participants: 12,
-        gameType: 'Battleship',
-    },
-    {
-        id: 4,
-        name: 'Carcassonne Championship',
-        location: 'Civic Center, Dubbo',
-        coordinates: { lat: -32.2569, lng: 148.601 },
-        date: 'Nov 8, 2024',
-        participants: 15,
-        gameType: 'Monopoly',
-    },
-    {
-        id: 5,
-        name: 'Root: The Board Game Meetup',
-        location: 'Gaming Hub, Albury',
-        coordinates: { lat: -36.0737, lng: 146.9135 },
-        date: 'Nov 10, 2024',
-        participants: 18,
-        gameType: 'Scrabble',
-    },
-    {
-        id: 6,
-        name: 'Ultimate DnD Campaign',
-        location: 'Gaming Hub, Albury',
-        coordinates: { lat: -36.0737, lng: 146.9135 },
-        date: 'Nov 10, 2024',
-        participants: 18,
-        gameType: 'Dungeons and Dragons',
-    },
-]
 
 const gameTypes = [
     'All',
@@ -112,8 +53,8 @@ const HomePage: React.FC = () => {
         lat: number
         lng: number
     } | null>(null)
-    const [filteredEvents, setFilteredEvents] =
-        useState<Event[]>(boardGameEvents)
+    const [events, setEvents] = useState<Event[]>([])
+    const [filteredEvents, setFilteredEvents] = useState<Event[]>([])
     const [searchTerm, setSearchTerm] = useState('')
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
     const [email, setEmail] = useState<string>('')
@@ -125,10 +66,31 @@ const HomePage: React.FC = () => {
     const mapRef = useRef<mapboxgl.Map | null>(null)
     const geocoderContainerRef = useRef<HTMLDivElement | null>(null)
     const geocoderRef = useRef<MapboxGeocoder | null>(null)
+    const markersRef = useRef<mapboxgl.Marker[]>([])
+
+    // Fetch events from API
+    useEffect(() => {
+        const fetchEvents = async () => {
+            try {
+                const response = await fetch('/api/events')
+                if (response.ok) {
+                    const data: Event[] = await response.json()
+                    setEvents(data)
+                    setFilteredEvents(data)
+                } else {
+                    console.error('Failed to fetch events')
+                }
+            } catch (error) {
+                console.error('Error fetching events:', error)
+            }
+        }
+
+        fetchEvents()
+    }, [])
 
     // Handle search filtering
     const handleSearch = () => {
-        let filtered = boardGameEvents.filter((event) =>
+        let filtered = events.filter((event) =>
             event.name.toLowerCase().includes(searchTerm.toLowerCase())
         )
 
@@ -148,7 +110,7 @@ const HomePage: React.FC = () => {
     // Update filtered events when search input changes
     useEffect(() => {
         handleSearch()
-    }, [searchTerm, currentLocation, selectedGameType])
+    }, [searchTerm, currentLocation, selectedGameType, events])
 
     // Initialize Mapbox Geocoder
     useEffect(() => {
@@ -172,7 +134,6 @@ const HomePage: React.FC = () => {
     // Initialize or update the map when showMap or currentLocation changes
     useEffect(() => {
         if (showMap && mapContainerRef.current) {
-            // Ensure the map container has dimensions before initializing the map
             const initializeMap = () => {
                 if (mapRef.current) {
                     mapRef.current.remove()
@@ -184,11 +145,14 @@ const HomePage: React.FC = () => {
                     center: currentLocation
                         ? [currentLocation.lng, currentLocation.lat]
                         : [151.2093, -33.8688], // Default center
-                    zoom: 12,
+                    zoom: 8, // Lower zoom level to show wider area
                 })
 
-                // Add navigation controls if needed
+                // Add navigation controls
                 mapRef.current.addControl(new mapboxgl.NavigationControl())
+
+                // Add markers to the map
+                addMarkers()
             }
 
             // Delay map initialization to ensure the container is rendered
@@ -197,6 +161,43 @@ const HomePage: React.FC = () => {
             }, 300)
         }
     }, [showMap, currentLocation])
+
+    // Update markers when filteredEvents change
+    useEffect(() => {
+        if (mapRef.current) {
+            // Remove existing markers
+            markersRef.current.forEach((marker) => marker.remove())
+            markersRef.current = []
+
+            // Add new markers
+            addMarkers()
+        }
+    }, [filteredEvents])
+
+    // Function to add markers to the map
+    const addMarkers = () => {
+        if (!mapRef.current) return
+
+        filteredEvents.forEach((event) => {
+            const el = document.createElement('div')
+            el.className = 'marker'
+            el.style.backgroundImage = `url(${getImgSrc(event.gameType)})`
+            el.style.width = '32px'
+            el.style.height = '32px'
+            el.style.backgroundSize = '100%'
+
+            const popup = new mapboxgl.Popup({ offset: 25 }).setHTML(
+                `<h3>${event.name}</h3><p>${event.location}</p><p>Date: ${event.date}</p>`
+            )
+
+            const marker = new mapboxgl.Marker(el)
+                .setLngLat(event.coordinates)
+                .setPopup(popup)
+                .addTo(mapRef.current!)
+
+            markersRef.current.push(marker)
+        })
+    }
 
     // Clean up map instance when component unmounts
     useEffect(() => {
@@ -278,7 +279,7 @@ const HomePage: React.FC = () => {
                 backgroundColor: '#121212',
                 color: '#FFFFFF',
                 fontFamily: 'Playfair Display, serif',
-                overflowX: 'hidden', // Prevent horizontal scroll
+                overflowX: 'hidden',
             }}
         >
             <Box sx={{ display: 'flex' }}>
@@ -302,6 +303,26 @@ const HomePage: React.FC = () => {
                             flexWrap: 'wrap',
                         }}
                     >
+                        {/* Swapped the order of the inputs */}
+                        {/* Location Search using Mapbox Geocoder */}
+                        <Box
+                            ref={geocoderContainerRef}
+                            sx={{
+                                width: { xs: '100%', sm: '300px' },
+                                '& .mapboxgl-ctrl-geocoder': {
+                                    width: '100%',
+                                    maxWidth: '100%',
+                                    backgroundColor: '#1e1e1e',
+                                    color: '#fff',
+                                    borderRadius: '4px',
+                                    border: '1px solid #8B4513',
+                                },
+                                '& .mapboxgl-ctrl-geocoder--input': {
+                                    color: '#fff',
+                                },
+                            }}
+                        />
+
                         <TextField
                             label="Search Events"
                             variant="outlined"
@@ -328,25 +349,6 @@ const HomePage: React.FC = () => {
                                     '&.Mui-focused fieldset': {
                                         borderColor: '#A0522D',
                                     },
-                                },
-                            }}
-                        />
-
-                        {/* Location Search using Mapbox Geocoder */}
-                        <Box
-                            ref={geocoderContainerRef}
-                            sx={{
-                                width: { xs: '100%', sm: '300px' },
-                                '& .mapboxgl-ctrl-geocoder': {
-                                    width: '100%',
-                                    maxWidth: '100%',
-                                    backgroundColor: '#1e1e1e',
-                                    color: '#fff',
-                                    borderRadius: '4px',
-                                    border: '1px solid #8B4513',
-                                },
-                                '& .mapboxgl-ctrl-geocoder--input': {
-                                    color: '#fff',
                                 },
                             }}
                         />
@@ -422,7 +424,7 @@ const HomePage: React.FC = () => {
                                     sm={6}
                                     md={4}
                                     lg={3}
-                                    key={event.id}
+                                    key={event._id}
                                 >
                                     <Card
                                         sx={{
@@ -491,7 +493,7 @@ const HomePage: React.FC = () => {
                                                 }}
                                                 sx={{
                                                     marginTop: 2,
-                                                    backgroundColor: '#8B4513', // Board game themed color
+                                                    backgroundColor: '#8B4513',
                                                     '&:hover': {
                                                         backgroundColor:
                                                             '#A0522D',

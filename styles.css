@@ -64,6 +64,11 @@ body {
 
 .mapboxgl-ctrl-geocoder--input {
   color: #fff !important;
+  height: 52px !important; 
+}
+
+.mapboxgl-ctrl-geocoder svg{
+  display: none !important;
 }
 
 /* Search bar styling */

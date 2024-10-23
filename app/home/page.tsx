@@ -42,6 +42,13 @@ type Event = {
     createdAt: string
 }
 
+// Add this type definition near the top with other types
+type RegisteredUser = {
+    email: string;
+    name: string;
+    joinedAt: string;
+}
+
 const gameTypes = [
     'All',
     'Catan',
@@ -97,6 +104,11 @@ const HomePage: React.FC = () => {
 
     // Add this new state to track the selected event ID
     const [selectedEventId, setSelectedEventId] = useState<string | null>(null)
+
+    // Add these new state variables inside the HomePage component
+    const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+    const [selectedEventDetails, setSelectedEventDetails] = useState<Event | null>(null);
+    const [registeredUsers, setRegisteredUsers] = useState<RegisteredUser[]>([]);
 
     // Fetch events from API
     useEffect(() => {
@@ -498,6 +510,27 @@ const HomePage: React.FC = () => {
         }
     }, [])
 
+    // Add this new function inside the HomePage component
+    const handleOpenDetails = async (event: Event) => {
+        setSelectedEventDetails(event);
+        setDetailsModalOpen(true);
+
+        // Fetch registered users for this event
+        try {
+            const response = await fetch(`/api/events/${event._id}/users`);
+            if (response.ok) {
+                const users = await response.json();
+                setRegisteredUsers(users);
+            } else {
+                console.error('Failed to fetch registered users');
+                setRegisteredUsers([]);
+            }
+        } catch (error) {
+            console.error('Error fetching registered users:', error);
+            setRegisteredUsers([]);
+        }
+    };
+
     return (
         <>
             <Box
@@ -662,104 +695,107 @@ const HomePage: React.FC = () => {
                             </Tabs>
                         </Box>
 
-                        {/* Gallery Grid */}
-                        <Box
-                            sx={{
-                                marginTop: '20px',
-                                paddingX: { xs: 0, sm: 2 },
-                            }}
-                        >
-                            <Grid container spacing={2}>
-                                {filteredEvents.map((event, id) => (
-                                    <Grid
-                                        item
-                                        xs={12}
-                                        sm={6}
-                                        md={4}
-                                        lg={3}
-                                        key={event._id}
-                                        id={`event-${event._id}`}
+                    {/* Gallery Grid */}
+                    <Box sx={{ marginTop: '20px', paddingX: { xs: 0, sm: 2 } }}>
+                        <Grid container spacing={2}>
+                            {filteredEvents.map((event) => (
+                                <Grid
+                                    item
+                                    xs={12}
+                                    sm={6}
+                                    md={4}
+                                    lg={3}
+                                    key={event._id}
+                                    id={`event-${event._id}`}
+                                >
+                                    <Card
+                                        sx={{
+                                            maxWidth: 345,
+                                            backgroundColor:
+                                                selectedEventId === event._id
+                                                    ? '#2e2e2e'
+                                                    : '#1e1e1e',
+                                            color: '#fff',
+                                            margin: 'auto',
+                                            transition:
+                                                'background-color 0.3s ease',
+                                            border:
+                                                selectedEventId === event._id
+                                                    ? '2px solid #8B4513'
+                                                    : 'none',
+                                            '&:hover': {
+                                                backgroundColor: '#2e2e2e',
+                                            },
+                                        }}
                                     >
-                                        <Card
-                                            sx={{
-                                                maxWidth: 345,
-                                                backgroundColor:
-
-                                                    selectedEventId ===
-                                                    event._id
-
-                                                        ? '#2e2e2e'
-
-                                                        : '#1e1e1e',
-                                                color: '#fff',
-                                                margin: 'auto',
-                                                transition:
-
-                                                    'background-color 0.3s ease',
-                                                border:
-
-                                                    selectedEventId ===
-                                                    event._id
-
-                                                        ? '2px solid #8B4513'
-
-                                                        : 'none',
-                                                '&:hover': {
-                                                    backgroundColor: '#2e2e2e',
-                                                },
-                                            }}
-                                        >
-                                            <CardMedia
-                                                component="img"
-                                                height="140"
-                                                image={getStockImgSrc(id)}
-                                                alt={event.name}
-                                            />
-                                            <CardContent>
-                                                <Typography
-                                                    gutterBottom
-                                                    variant="h5"
-                                                    component="div"
+                                        <CardMedia
+                                            component="img"
+                                            height="140"
+                                            image={getImgSrc(event.gameType)}
+                                            alt={event.name}
+                                        />
+                                        <CardContent>
+                                            <Typography
+                                                gutterBottom
+                                                variant="h5"
+                                                component="div"
+                                                sx={{
+                                                    color: '#fff',
+                                                    fontFamily:
+                                                        'Press Start 2P, cursive',
+                                                }}
+                                            >
+                                                {event.name}
+                                            </Typography>
+                                            <Typography
+                                                variant="body2"
+                                                sx={{
+                                                    color: '#ccc',
+                                                    fontFamily:
+                                                        'Roboto, sans-serif',
+                                                }}
+                                            >
+                                                Location: {event.location}
+                                            </Typography>
+                                            <Typography
+                                                variant="body2"
+                                                sx={{
+                                                    color: '#ccc',
+                                                    fontFamily:
+                                                        'Roboto, sans-serif',
+                                                }}
+                                            >
+                                                Date: {event.date}
+                                            </Typography>
+                                            <Typography
+                                                variant="body2"
+                                                sx={{
+                                                    color: '#ccc',
+                                                    fontFamily:
+                                                        'Roboto, sans-serif',
+                                                }}
+                                            >
+                                                Participants:{' '}
+                                                {event.participants}
+                                            </Typography>
+                                            <Box sx={{ display: 'flex', gap: 1, mt: 2 }}>
+                                                <Button
+                                                    variant="outlined"
+                                                    onClick={() => handleOpenDetails(event)}
                                                     sx={{
+                                                        flex: 1,
+                                                        borderColor: '#8B4513',
                                                         color: '#fff',
-                                                        fontFamily:
-                                                            'Press Start 2P, cursive',
+                                                        '&:hover': {
+                                                            borderColor: '#A0522D',
+                                                            backgroundColor: 'rgba(139, 69, 19, 0.1)',
+                                                        },
+                                                        fontFamily: 'Press Start 2P, cursive',
+                                                        fontSize: '0.7rem'
                                                     }}
                                                 >
-                                                    {event.name}
-                                                </Typography>
-                                                <Typography
-                                                    variant="body2"
-                                                    sx={{
-                                                        color: '#ccc',
-                                                        fontFamily:
-                                                            'Roboto, sans-serif',
-                                                    }}
-                                                >
-                                                    Location: {event.location}
-                                                </Typography>
-                                                <Typography
-                                                    variant="body2"
-                                                    sx={{
-                                                        color: '#ccc',
-                                                        fontFamily:
-                                                            'Roboto, sans-serif',
-                                                    }}
-                                                >
-                                                    Date: {event.date}
-                                                </Typography>
-                                                <Typography
-                                                    variant="body2"
-                                                    sx={{
-                                                        color: '#ccc',
-                                                        fontFamily:
-                                                            'Roboto, sans-serif',
-                                                    }}
-                                                >
-                                                    Participants:{' '}
-                                               {' '}
-                                                    {event.participants}
-                                                </Typography>
+                                                    Details
+                                                </Button>
                                                 <Button
                                                     variant="contained"
                                                     color="primary"
@@ -768,26 +804,25 @@ const HomePage: React.FC = () => {
                                                         handleOpenEmailModal()
                                                     }}
                                                     sx={{
-                                                        marginTop: 2,
-                                                        backgroundColor:
-                                                            '#8B4513',
+                                                        flex: 1,
+                                                        backgroundColor: '#8B4513',
                                                         '&:hover': {
-                                                            backgroundColor:
-                                                                '#A0522D',
+                                                            backgroundColor: '#A0522D',
                                                         },
-                                                        fontFamily:
-                                                            'Press Start 2P, cursive',
+                                                        fontFamily: 'Press Start 2P, cursive',
+                                                        fontSize: '0.7rem'
                                                     }}
                                                 >
                                                     Join Event
                                                 </Button>
-                                            </CardContent>
-                                        </Card>
-                                    </Grid>
-                                ))}
-                            </Grid>
-                        </Box>
+                                            </Box>
+                                        </CardContent>
+                                    </Card>
+                                </Grid>
+                            ))}
+                        </Grid>
                     </Box>
+                </Box>
 
                     {/* Map Container */}
                     <Slide
@@ -1110,6 +1145,184 @@ const HomePage: React.FC = () => {
                         </Button>
                     </Box>
                 </Modal>
+
+            {/* Event Details Modal */}
+            <Modal
+                open={detailsModalOpen}
+                onClose={() => setDetailsModalOpen(false)}
+                aria-labelledby="event-details-modal"
+            >
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: { xs: '90%', sm: 600 },
+                        maxHeight: '90vh',
+                        bgcolor: '#1e1e1e',
+                        border: '2px solid #8B4513',
+                        boxShadow: 24,
+                        p: 4,
+                        borderRadius: 2,
+                        overflow: 'auto',
+                        color: '#fff',
+                    }}
+                >
+                    {selectedEventDetails && (
+                        <>
+                            <Typography
+                                variant="h4"
+                                component="h2"
+                                sx={{
+                                    mb: 3,
+                                    fontFamily: 'Press Start 2P, cursive',
+                                    fontSize: { xs: '1.2rem', sm: '1.5rem' },
+                                    color: '#8B4513'
+                                }}
+                            >
+                                {selectedEventDetails.name}
+                            </Typography>
+
+                            <Box sx={{ display: 'flex', mb: 3 }}>
+                                <Box
+                                    component="img"
+                                    src={getImgSrc(selectedEventDetails.gameType)}
+                                    sx={{
+                                        width: 100,
+                                        height: 100,
+                                        objectFit: 'contain',
+                                        mr: 3,
+                                        borderRadius: 1
+                                    }}
+                                />
+                                <Box>
+                                    <Typography
+                                        sx={{
+                                            mb: 1,
+                                            fontFamily: 'Roboto, sans-serif',
+                                            color: '#ccc'
+                                        }}
+                                    >
+                                        <strong>Game Type:</strong> {selectedEventDetails.gameType}
+                                    </Typography>
+                                    <Typography
+                                        sx={{
+                                            mb: 1,
+                                            fontFamily: 'Roboto, sans-serif',
+                                            color: '#ccc'
+                                        }}
+                                    >
+                                        <strong>Location:</strong> {selectedEventDetails.location}
+                                    </Typography>
+                                    <Typography
+                                        sx={{
+                                            mb: 1,
+                                            fontFamily: 'Roboto, sans-serif',
+                                            color: '#ccc'
+                                        }}
+                                    >
+                                        <strong>Date:</strong> {new Date(selectedEventDetails.date).toLocaleDateString()}
+                                    </Typography>
+                                    <Typography
+                                        sx={{
+                                            mb: 1,
+                                            fontFamily: 'Roboto, sans-serif',
+                                            color: '#ccc'
+                                        }}
+                                    >
+                                        <strong>Max Participants:</strong> {selectedEventDetails.participants}
+                                    </Typography>
+                                </Box>
+                            </Box>
+
+                            <Typography
+                                variant="h6"
+                                sx={{
+                                    mb: 2,
+                                    fontFamily: 'Press Start 2P, cursive',
+                                    fontSize: '1rem',
+                                    color: '#8B4513'
+                                }}
+                            >
+                                Description
+                            </Typography>
+                            <Typography
+                                sx={{
+                                    mb: 3,
+                                    fontFamily: 'Roboto, sans-serif',
+                                    color: '#ccc'
+                                }}
+                            >
+                                {selectedEventDetails.description || 'No description available.'}
+                            </Typography>
+
+                            <Typography
+                                variant="h6"
+                                sx={{
+                                    mb: 2,
+                                    fontFamily: 'Press Start 2P, cursive',
+                                    fontSize: '1rem',
+                                    color: '#8B4513'
+                                }}
+                            >
+                                Registered Users ({registeredUsers.length})
+                            </Typography>
+                            <Box
+                                sx={{
+                                    bgcolor: '#2e2e2e',
+                                    borderRadius: 1,
+                                    p: 2,
+                                    maxHeight: 200,
+                                    overflow: 'auto'
+                                }}
+                            >
+                                {registeredUsers.length > 0 ? (
+                                    registeredUsers.map((user, index) => (
+                                        <Box
+                                            key={index}
+                                            sx={{
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                p: 1,
+                                                borderBottom: index < registeredUsers.length - 1 ? '1px solid #444' : 'none'
+                                            }}
+                                        >
+                                            <Box
+                                                sx={{
+                                                    width: 8,
+                                                    height: 8,
+                                                    borderRadius: '50%',
+                                                    bgcolor: '#8B4513',
+                                                    mr: 2
+                                                }}
+                                            />
+                                            <Typography
+                                                sx={{
+                                                    fontFamily: 'Roboto, sans-serif',
+                                                    color: '#ccc'
+                                                }}
+                                            >
+                                                {user.name} ({user.email})
+                                            </Typography>
+                                        </Box>
+                                    ))
+                                ) : (
+                                    <Typography
+                                        sx={{
+                                            fontFamily: 'Roboto, sans-serif',
+                                            color: '#888',
+                                            textAlign: 'center'
+                                        }}
+                                    >
+                                        No users registered yet
+                                    </Typography>
+                                )}
+                            </Box>
+                        </>
+                    )}
+                </Box>
+            </Modal>
             </Box>
         </>
     )

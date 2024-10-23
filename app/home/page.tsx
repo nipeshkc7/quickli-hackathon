@@ -1,12 +1,10 @@
 'use client'
 
-import React, { useEffect, useState, useRef } from 'react'
-import '../../styles.css' // Import your CSS for animations and dark theme popups
+import React, { useEffect, useState } from 'react'
+import '../../styles.css' // Import your CSS for styles
 import {
     Box,
     Typography,
-    IconButton,
-    CircularProgress,
     Grid,
     Card,
     CardContent,
@@ -16,15 +14,9 @@ import {
     TextField,
     Tabs,
     Tab,
+    IconButton,
 } from '@mui/material'
-import {
-    Search as SearchIcon,
-    MyLocation as LocationIcon,
-} from '@mui/icons-material'
-import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder'
-import mapboxgl from 'mapbox-gl'
-import 'mapbox-gl/dist/mapbox-gl.css'
-import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css'
+import { Search as SearchIcon } from '@mui/icons-material'
 
 type Event = {
     id: number
@@ -114,44 +106,25 @@ const HomePage: React.FC = () => {
     } | null>(null)
     const [filteredEvents, setFilteredEvents] =
         useState<Event[]>(boardGameEvents)
-    const [search, setSearch] = useState('')
-    const [loading, setLoading] = useState(false)
+    const [searchTerm, setSearchTerm] = useState('')
+    const [location, setLocation] = useState('')
     const [selectedEvent, setSelectedEvent] = useState<Event | null>(null)
     const [email, setEmail] = useState<string>('')
     const [joining, setJoining] = useState(false)
     const [emailModalOpen, setEmailModalOpen] = useState(false)
-    const inputRef = useRef<HTMLInputElement>(null)
     const [selectedGameType, setSelectedGameType] = useState<string>('All')
-    const mapContainerRef = useRef<HTMLDivElement>(null)
-
-    // Initialize Mapbox geocoder
-    useEffect(() => {
-        if (!mapContainerRef.current) return
-        const geocoder = new MapboxGeocoder({
-            accessToken: process.env.NEXT_PUBLIC_MAPBOX_TOKEN!,
-            types: 'country,region,place,postcode,locality,neighborhood',
-            placeholder: 'Search for location',
-        })
-
-        geocoder.addTo(mapContainerRef.current)
-
-        geocoder.on('result', (e: any) => {
-            const coords = e.result.center
-            setCurrentLocation({ lng: coords[0], lat: coords[1] })
-        })
-
-        // Clean up on unmount
-        return () => {
-            geocoder.off('result', () => {})
-            geocoder.clear()
-        }
-    }, [])
 
     // Handle search filtering
     const handleSearch = () => {
         let filtered = boardGameEvents.filter((event) =>
-            event.name.toLowerCase().includes(search.toLowerCase())
+            event.name.toLowerCase().includes(searchTerm.toLowerCase())
         )
+
+        if (location) {
+            filtered = filtered.filter((event) =>
+                event.location.toLowerCase().includes(location.toLowerCase())
+            )
+        }
 
         if (selectedGameType !== 'All') {
             filtered = filtered.filter(
@@ -165,29 +138,7 @@ const HomePage: React.FC = () => {
     // Update filtered events when search input changes
     useEffect(() => {
         handleSearch()
-    }, [search, selectedGameType])
-
-    // Handle fetching user's current location
-    const handleLocationSearch = () => {
-        setLoading(true)
-        if (typeof window !== 'undefined' && navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    setCurrentLocation({
-                        lat: position.coords.latitude,
-                        lng: position.coords.longitude,
-                    })
-                    setLoading(false)
-                },
-                (error) => {
-                    console.error('Error fetching location:', error)
-                    setLoading(false)
-                }
-            )
-        } else {
-            setLoading(false)
-        }
-    }
+    }, [searchTerm, location, selectedGameType])
 
     // Fetch user location on mount
     useEffect(() => {
@@ -200,11 +151,6 @@ const HomePage: React.FC = () => {
             })
         }
     }, [])
-
-    // Focus the hidden input when the search bar is clicked
-    const focusInput = () => {
-        inputRef.current?.focus()
-    }
 
     // Open modal to ask for email
     const handleOpenEmailModal = () => {
@@ -277,102 +223,84 @@ const HomePage: React.FC = () => {
                 backgroundColor: '#121212',
                 color: '#FFFFFF',
                 padding: { xs: 2, sm: 3, md: 4 },
+                fontFamily: 'Playfair Display, serif',
             }}
         >
-            {/* Scrabble-inspired Search Bar */}
+            {/* Search Bar */}
             <Box
-                className="scrabble-search-bar"
                 sx={{
-                    position: 'fixed',
-                    top: '0px',
-                    left: '0px',
-                    width: '100%',
-                    padding: 2,
-                    borderRadius: 0,
-                    boxShadow: 3,
+                    marginTop: '20px',
                     display: 'flex',
+                    justifyContent: 'center',
                     alignItems: 'center',
-                    zIndex: 999,
-                    cursor: 'text',
-                    backgroundColor: '#1e1e1e',
+                    gap: 2,
+                    flexWrap: 'wrap',
                 }}
-                onClick={focusInput}
             >
-                {/* Hidden input field */}
-                <input
-                    type="text"
-                    ref={inputRef}
-                    className="hidden-input"
-                    style={{
-                        opacity: 0,
-                        position: 'absolute',
-                        left: '-9999px',
-                        textTransform: 'uppercase',
+                <TextField
+                    label="Search Events"
+                    variant="outlined"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    InputProps={{
+                        style: { color: '#fff', backgroundColor: '#1e1e1e' },
                     }}
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                    autoFocus
-                />
-
-                {/* Display characters as Scrabble tiles */}
-                <Box
-                    className="scrabble-search-characters"
-                    onClick={focusInput}
+                    InputLabelProps={{
+                        style: { color: '#fff' },
+                    }}
                     sx={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        flexGrow: 1,
-                        alignItems: 'center',
+                        width: { xs: '100%', sm: '300px' },
+                        '& .MuiOutlinedInput-root': {
+                            '& fieldset': {
+                                borderColor: '#8B4513',
+                            },
+                            '&:hover fieldset': {
+                                borderColor: '#A0522D',
+                            },
+                            '&.Mui-focused fieldset': {
+                                borderColor: '#A0522D',
+                            },
+                        },
                     }}
-                >
-                    {search.length === 0 && (
-                        <Typography
-                            variant="body1"
-                            sx={{ color: '#666', marginLeft: 1 }}
-                        >
-                            Search for events
-                        </Typography>
-                    )}
-                    {search.split('').map((char, index) => (
-                        <Box
-                            key={index}
-                            sx={{
-                                backgroundColor: '#f5deb3',
-                                border: '1px solid #b8860b',
-                                borderRadius: '4px',
-                                padding: '8px',
-                                margin: '2px',
-                                fontWeight: 'bold',
-                                fontSize: '1.2em',
-                                color: '#000',
-                            }}
-                        >
-                            {char.toUpperCase()}
-                        </Box>
-                    ))}
-                </Box>
-
-                {/* Search and location icons */}
-                <IconButton onClick={handleSearch}>
-                    <SearchIcon sx={{ color: '#fff' }} />
-                </IconButton>
-                <IconButton onClick={handleLocationSearch}>
-                    {loading ? (
-                        <CircularProgress size={24} />
-                    ) : (
-                        <LocationIcon sx={{ color: '#fff' }} />
-                    )}
+                />
+                <TextField
+                    label="Location"
+                    variant="outlined"
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value)}
+                    InputProps={{
+                        style: { color: '#fff', backgroundColor: '#1e1e1e' },
+                    }}
+                    InputLabelProps={{
+                        style: { color: '#fff' },
+                    }}
+                    sx={{
+                        width: { xs: '100%', sm: '300px' },
+                        '& .MuiOutlinedInput-root': {
+                            '& fieldset': {
+                                borderColor: '#8B4513',
+                            },
+                            '&:hover fieldset': {
+                                borderColor: '#A0522D',
+                            },
+                            '&.Mui-focused fieldset': {
+                                borderColor: '#A0522D',
+                            },
+                        },
+                    }}
+                />
+                <IconButton onClick={handleSearch} sx={{ color: '#fff' }}>
+                    <SearchIcon />
                 </IconButton>
             </Box>
 
             {/* Subcategories Tab */}
             <Box
                 sx={{
-                    marginTop: '80px',
-                    paddingX: { xs: 0, sm: 2 },
-                    overflowX: 'auto',
-                    whiteSpace: 'nowrap',
+                    marginTop: '20px',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
                 }}
             >
                 <Tabs
@@ -382,6 +310,13 @@ const HomePage: React.FC = () => {
                     textColor="inherit"
                     variant="scrollable"
                     scrollButtons="auto"
+                    sx={{
+                        maxWidth: '80%',
+                        margin: '0 auto',
+                        '& .MuiTabs-flexContainer': {
+                            justifyContent: 'center',
+                        },
+                    }}
                 >
                     {gameTypes.map((type) => (
                         <Tab
@@ -404,27 +339,15 @@ const HomePage: React.FC = () => {
                                 color: '#fff',
                                 textTransform: 'none',
                                 minWidth: '80px',
+                                fontFamily: 'Press Start 2P, cursive',
                             }}
                         />
                     ))}
                 </Tabs>
             </Box>
 
-            {/* Mapbox Geocoder for Location Search */}
-            <Box
-                ref={mapContainerRef}
-                sx={{
-                    width: '100%',
-                    maxWidth: '600px',
-                    margin: '20px auto',
-                    '.mapboxgl-ctrl-geocoder': {
-                        minWidth: '100%',
-                    },
-                }}
-            />
-
             {/* Gallery Grid */}
-            <Box sx={{ marginTop: '20px' }}>
+            <Box sx={{ marginTop: '20px', paddingX: { xs: 0, sm: 2 } }}>
                 <Grid container spacing={2}>
                     {filteredEvents.map((event) => (
                         <Grid item xs={12} sm={6} md={4} lg={3} key={event.id}>
@@ -447,25 +370,41 @@ const HomePage: React.FC = () => {
                                         gutterBottom
                                         variant="h5"
                                         component="div"
-                                        sx={{ color: '#fff' }}
+                                        sx={{
+                                            color: '#fff',
+                                            fontFamily:
+                                                'Press Start 2P, cursive',
+                                        }}
                                     >
                                         {event.name}
                                     </Typography>
                                     <Typography
                                         variant="body2"
-                                        sx={{ color: '#ccc' }}
+                                        sx={{
+                                            color: '#ccc',
+                                            fontFamily:
+                                                'Playfair Display, serif',
+                                        }}
                                     >
                                         Location: {event.location}
                                     </Typography>
                                     <Typography
                                         variant="body2"
-                                        sx={{ color: '#ccc' }}
+                                        sx={{
+                                            color: '#ccc',
+                                            fontFamily:
+                                                'Playfair Display, serif',
+                                        }}
                                     >
                                         Date: {event.date}
                                     </Typography>
                                     <Typography
                                         variant="body2"
-                                        sx={{ color: '#ccc' }}
+                                        sx={{
+                                            color: '#ccc',
+                                            fontFamily:
+                                                'Playfair Display, serif',
+                                        }}
                                     >
                                         Participants: {event.participants}
                                     </Typography>
@@ -482,6 +421,8 @@ const HomePage: React.FC = () => {
                                             '&:hover': {
                                                 backgroundColor: '#A0522D',
                                             },
+                                            fontFamily:
+                                                'Press Start 2P, cursive',
                                         }}
                                     >
                                         Join Event
@@ -520,6 +461,7 @@ const HomePage: React.FC = () => {
                         variant="h6"
                         component="h2"
                         color="white"
+                        sx={{ fontFamily: 'Press Start 2P, cursive' }}
                     >
                         Enter your email to join the event
                     </Typography>
@@ -533,6 +475,7 @@ const HomePage: React.FC = () => {
                             marginTop: 2,
                             input: { color: '#fff' },
                             label: { color: '#fff' },
+                            fontFamily: 'Playfair Display, serif',
                         }}
                         InputProps={{
                             style: {
@@ -548,10 +491,11 @@ const HomePage: React.FC = () => {
                         disabled={!email || joining}
                         sx={{
                             marginTop: 2,
-                            backgroundColor: '#8B4513', // Board game themed color
+                            backgroundColor: '#8B4513',
                             '&:hover': {
                                 backgroundColor: '#A0522D',
                             },
+                            fontFamily: 'Press Start 2P, cursive',
                         }}
                     >
                         {joining ? 'Joining...' : 'Join'}

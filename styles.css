@@ -1,4 +1,35 @@
 /* Scrabble Tile Styling */
+
+/* Import fun fonts */
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display&family=Press+Start+2P&display=swap');
+
+/* General styles */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Playfair Display', serif;
+    background-color: #121212;
+    color: #FFFFFF;
+}
+
+/* Adjust MUI components */
+.MuiTab-root {
+  min-width: 80px !important;
+}
+
+.MuiTab-wrapper {
+  flex-direction: column;
+}
+
+.MuiTabs-flexContainer {
+  justify-content: center;
+}
+
+.MuiButtonBase-root {
+  font-family: 'Press Start 2P', cursive !important;
+}
+
+
 .scrabble-tile {
     display: inline-block;
     background-color: #f3e5ab;
@@ -39,6 +70,7 @@
   
   /* Search Bar Styling */
   .scrabble-search-bar {
+    
     display: flex;
     background-color: #d8bf82;
     padding: 10px;
@@ -67,7 +99,6 @@
   .placeholder-text {
     color: #666;
     font-size: 18px;
-    font-family: 'Roboto', sans-serif;
     position: absolute;
     left: 50%;
     transform: translateX(-50%);
@@ -96,4 +127,37 @@
       border-right-color: transparent;
     }
   }
-  
+
+
+  /* Adjust the search bar */
+.search-bar {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+/* Adjust card styles */
+.MuiCard-root {
+  background-color: #1e1e1e !important;
+  color: #fff !important;
+}
+
+.MuiCardContent-root {
+  font-family: 'Playfair Display', serif !important;
+}
+
+.MuiTypography-root {
+  font-family: 'Playfair Display', serif !important;
+}
+
+/* Adjust modal styles */
+.MuiModal-root {
+  font-family: 'Playfair Display', serif !important;
+}
+
+.MuiTextField-root {
+  font-family: 'Playfair Display', serif !important;
+}

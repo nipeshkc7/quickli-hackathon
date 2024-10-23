@@ -12,6 +12,11 @@ import {
 import { Button } from '@mui/material'
 import { Modal } from '@mui/material'
 import { TextField } from '@mui/material'
+import { useAuth } from './hooks/useAuth'
+import { MenuItem } from '@mui/material'
+import { DatePicker } from '@mui/x-date-pickers/DatePicker'
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
+import { LocalizationProvider } from '@mui/x-date-pickers'
 
 import { EventType } from '@/app/lib/types/airdnd'
 import { generateRandomName } from '@/app/lib/utilities'
@@ -32,13 +37,37 @@ const HomePage: React.FC = () => {
     const inputRef = useRef<HTMLInputElement>(null)
     const [events, setEvents] = useState<EventType[]>([])
     const [isLoading, setIsLoading] = useState(true)
+    const [createEventModalOpen, setCreateEventModalOpen] = useState(false)
+    const [newEventCoordinates, setNewEventCoordinates] = useState<{
+        lat: number
+        lng: number
+    } | null>(null)
+    const [confirmCreateOpen, setConfirmCreateOpen] = useState(false)
+    const [eventName, setEventName] = useState('')
+    const [locationName, setLocationName] = useState('')
+    const [date, setDate] = useState<Date | null>(null)
+    const [participants, setParticipants] = useState<number | ''>('')
+    const [description, setDescription] = useState('')
+    const [gameType, setGameType] = useState('')
+    const [creating, setCreating] = useState(false)
+    const [tempPin, setTempPin] = useState<{ lat: number; lng: number } | null>(
+        null
+    )
+
+    // Add authentication hook
+    const { session, isAuthenticated } = useAuth()
 
     // Handle search filtering
-    const handleSearch = () => {
-        const filtered = events.filter((event) =>
-            event.name.toLowerCase().includes(search.toLowerCase())
-        )
-        setFilteredEvents(filtered)
+    const handleSearch = (searchValue: string) => {
+        setSearch(searchValue)
+        if (searchValue.trim() === '') {
+            setFilteredEvents(events) // Reset to show all events when search is cleared
+        } else {
+            const filtered = events.filter((event) =>
+                event.name.toLowerCase().includes(searchValue.toLowerCase())
+            )
+            setFilteredEvents(filtered)
+        }
     }
 
     // Handle fetching user's current location
@@ -161,6 +190,68 @@ const HomePage: React.FC = () => {
         }
     }
 
+    // Add this function to handle event creation
+    const handleCreateEvent = async () => {
+        if (
+            !newEventCoordinates ||
+            !eventName ||
+            !locationName ||
+            !date ||
+            !gameType
+        ) {
+            alert('Please fill in all required fields.')
+            return
+        }
+
+        setCreating(true)
+        try {
+            const payload = {
+                name: eventName,
+                location: locationName,
+                coordinates: newEventCoordinates,
+                date: date.toISOString(),
+                participants: participants ? Number(participants) : undefined,
+                image: 'placeholder-image-url',
+                description,
+                gameType,
+            }
+
+            const response = await fetch('/api/events', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload),
+            })
+
+            if (!response.ok) throw new Error(`Error: ${response.statusText}`)
+
+            // Refresh events list
+            const updatedEvents = await fetch('/api/events').then((res) =>
+                res.json()
+            )
+            setEvents(updatedEvents)
+            setFilteredEvents(updatedEvents)
+
+            // Reset form
+            setEventName('')
+            setLocationName('')
+            setDate(null)
+            setParticipants('')
+            setDescription('')
+            setGameType('')
+            setCreateEventModalOpen(false)
+            setTempPin(null) // Clear temp pin after successful creation
+
+            alert('Event created successfully!')
+        } catch (error) {
+            console.error('Failed to create event:', error)
+            alert('Failed to create event. Please try again.')
+        } finally {
+            setCreating(false)
+        }
+    }
+
     return (
         <Box sx={{ height: '100vh', width: '100vw', position: 'relative' }}>
             {/* Map Component */}
@@ -173,7 +264,20 @@ const HomePage: React.FC = () => {
                 style={{ width: '100%', height: '100vh' }}
                 mapStyle="mapbox://styles/mapbox/dark-v10"
                 mapboxAccessToken={process.env.NEXT_PUBLIC_MAPBOX_TOKEN}
-                onClick={() => setSelectedEvent(null)} // Deselect event when clicking on the map
+                onClick={(e) => {
+                    if (!isAuthenticated) {
+                        alert('Please sign in to create events')
+                        return
+                    }
+                    setSelectedEvent(null)
+                    const coordinates = {
+                        lat: e.lngLat.lat,
+                        lng: e.lngLat.lng,
+                    }
+                    setNewEventCoordinates(coordinates)
+                    setTempPin(coordinates) // Set temporary pin
+                    setConfirmCreateOpen(true)
+                }}
             >
                 {isLoading ? (
                     <Box
@@ -278,6 +382,17 @@ const HomePage: React.FC = () => {
                         </Box>
                     </Popup>
                 )}
+
+                {/* Add this new Marker for temporary pin */}
+                {tempPin && (
+                    <Marker
+                        longitude={tempPin.lng}
+                        latitude={tempPin.lat}
+                        anchor="bottom"
+                    >
+                        <div style={{ fontSize: '24px' }}>📍</div>
+                    </Marker>
+                )}
             </Map>
 
             {/* Email Modal */}
@@ -362,8 +477,10 @@ const HomePage: React.FC = () => {
                         textTransform: 'uppercase',
                     }}
                     value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
+                    onChange={(e) => handleSearch(e.target.value)} // Update to call handleSearch directly
+                    onKeyPress={(e) =>
+                        e.key === 'Enter' && handleSearch(search)
+                    } // Optional: keep this for Enter key functionality
                     autoFocus
                 />
 
@@ -387,9 +504,8 @@ const HomePage: React.FC = () => {
                         </Box>
                     ))}
                 </Box>
-
                 {/* Search and location icons */}
-                <IconButton onClick={handleSearch}>
+                <IconButton onClick={() => handleSearch(search)}>
                     <SearchIcon className="scrabble-search-icon" />
                 </IconButton>
                 <IconButton onClick={handleLocationSearch}>
@@ -400,6 +516,165 @@ const HomePage: React.FC = () => {
                     )}
                 </IconButton>
             </Box>
+
+            {/* Confirm Create Modal */}
+            <Modal
+                open={confirmCreateOpen}
+                onClose={() => {
+                    setConfirmCreateOpen(false)
+                    setTempPin(null) // Clear temp pin when closing
+                }}
+            >
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: 400,
+                        bgcolor: 'background.paper',
+                        boxShadow: 24,
+                        p: 4,
+                        borderRadius: 2,
+                    }}
+                >
+                    <Typography
+                        variant="h6"
+                        component="h2"
+                        sx={{ color: 'black' }}
+                    >
+                        Create a new event here?
+                    </Typography>
+                    <Button
+                        onClick={() => {
+                            setConfirmCreateOpen(false)
+                            setCreateEventModalOpen(true)
+                            // Don't clear temp pin here as we're moving to create modal
+                        }}
+                        variant="contained"
+                        sx={{ mt: 2, mr: 2 }}
+                    >
+                        Yes
+                    </Button>
+                    <Button
+                        onClick={() => {
+                            setConfirmCreateOpen(false)
+                            setTempPin(null) // Clear temp pin when clicking No
+                        }}
+                        variant="outlined"
+                        sx={{ mt: 2 }}
+                    >
+                        No
+                    </Button>
+                </Box>
+            </Modal>
+
+            {/* Create Event Modal */}
+            <Modal
+                open={createEventModalOpen}
+                onClose={() => {
+                    setCreateEventModalOpen(false)
+                    setTempPin(null) // Clear temp pin when closing create modal
+                }}
+            >
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: 600,
+                        bgcolor: 'background.paper',
+                        boxShadow: 24,
+                        p: 4,
+                        borderRadius: 2,
+                        maxHeight: '90vh',
+                        overflow: 'auto',
+                    }}
+                >
+                    <Typography
+                        variant="h6"
+                        gutterBottom
+                        sx={{ color: 'black' }}
+                    >
+                        Create New Event
+                    </Typography>
+                    <TextField
+                        required
+                        fullWidth
+                        label="Event Name"
+                        value={eventName}
+                        onChange={(e) => setEventName(e.target.value)}
+                        sx={{ mb: 2 }}
+                    />
+                    <TextField
+                        required
+                        fullWidth
+                        label="Location Name"
+                        value={locationName}
+                        onChange={(e) => setLocationName(e.target.value)}
+                        sx={{ mb: 2 }}
+                    />
+                    <TextField
+                        required
+                        select
+                        fullWidth
+                        label="Type of Game"
+                        value={gameType}
+                        onChange={(e) => setGameType(e.target.value)}
+                        sx={{ mb: 2 }}
+                    >
+                        {[
+                            'Scrabble',
+                            'Chess',
+                            'Battleship',
+                            'Settlers of Catan',
+                            'Monopoly',
+                        ].map((game) => (
+                            <MenuItem key={game} value={game}>
+                                {game}
+                            </MenuItem>
+                        ))}
+                    </TextField>
+                    <TextField
+                        fullWidth
+                        label="Event Description"
+                        multiline
+                        rows={4}
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        sx={{ mb: 2 }}
+                    />
+                    <LocalizationProvider dateAdapter={AdapterDateFns}>
+                        <DatePicker
+                            label="Event Date"
+                            value={date}
+                            onChange={(newValue) => setDate(newValue)}
+                            sx={{ mb: 2, width: '100%' }}
+                        />
+                    </LocalizationProvider>
+                    <TextField
+                        required
+                        fullWidth
+                        label="Number of Participants"
+                        type="number"
+                        value={participants}
+                        onChange={(e) =>
+                            setParticipants(Number(e.target.value))
+                        }
+                        InputProps={{ inputProps: { min: 1 } }}
+                        sx={{ mb: 2 }}
+                    />
+                    <Button
+                        variant="contained"
+                        onClick={handleCreateEvent}
+                        disabled={creating}
+                        fullWidth
+                    >
+                        {creating ? 'Creating...' : 'Create Event'}
+                    </Button>
+                </Box>
+            </Modal>
         </Box>
     )
 }

@@ -23,6 +23,7 @@ import mapboxgl from 'mapbox-gl'
 import MapboxGeocoder from '@mapbox/mapbox-gl-geocoder'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import '@mapbox/mapbox-gl-geocoder/dist/mapbox-gl-geocoder.css'
+import LoadingScreen from '../components/Loading'
 
 import { useAuth } from '../hooks/useAuth'
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
@@ -72,6 +73,7 @@ const HomePage: React.FC = () => {
     const geocoderRef = useRef<MapboxGeocoder | null>(null)
     const markersRef = useRef<mapboxgl.Marker[]>([])
 
+    const [isLoading, setIsLoading] = useState(true)
     // Add these new state variables inside the HomePage component
     const [createEventModalOpen, setCreateEventModalOpen] = useState(false)
     const [newEventCoordinates, setNewEventCoordinates] = useState<{
@@ -101,6 +103,7 @@ const HomePage: React.FC = () => {
     // Fetch events from API
     useEffect(() => {
         const fetchEvents = async () => {
+            setIsLoading(true)
             try {
                 const response = await fetch('/api/events')
                 if (response.ok) {
@@ -112,6 +115,10 @@ const HomePage: React.FC = () => {
                 }
             } catch (error) {
                 console.error('Error fetching events:', error)
+            } finally {
+                setTimeout(() => {
+                    setIsLoading(false)
+                }, 1000)
             }
         }
 
@@ -460,6 +467,7 @@ const HomePage: React.FC = () => {
 
     return (
         <>
+            {isLoading && <LoadingScreen />}
             <Box
                 sx={{
                     width: '100%',
@@ -677,6 +685,10 @@ const HomePage: React.FC = () => {
                                                         color: '#fff',
                                                         fontFamily:
                                                             'Press Start 2P, cursive',
+                                                        overflow: 'hidden',
+                                                        textOverflow:
+                                                            'ellipsis',
+                                                        whiteSpace: 'nowrap',
                                                     }}
                                                 >
                                                     {event.name}

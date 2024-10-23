@@ -65,7 +65,7 @@ const HomePage: React.FC = () => {
     const [joining, setJoining] = useState(false)
     const [emailModalOpen, setEmailModalOpen] = useState(false)
     const [selectedGameType, setSelectedGameType] = useState<string>('All')
-    const [showMap, setShowMap] = useState<boolean>(false)
+    const [showMap, setShowMap] = useState<boolean>(true)
     const mapContainerRef = useRef<HTMLDivElement | null>(null)
     const mapRef = useRef<mapboxgl.Map | null>(null)
     const geocoderContainerRef = useRef<HTMLDivElement | null>(null)
@@ -455,8 +455,48 @@ const HomePage: React.FC = () => {
             mapRef.current.on('click', () => {
                 setSelectedEventId(null)
             })
+                setSelectedEventId(null)
+            })
         }
     }, [mapRef.current])
+
+    // Update the banner CSS in the useEffect
+    useEffect(() => {
+        const style = document.createElement('style')
+        style.textContent = `
+            @keyframes floatUpDown {
+                50% { transform: translate(-50%, -10px); }
+                100%, 0% { transform: translate(-50%, 0); }
+            }
+
+            .floating-banner {
+                animation: floatUpDown 2s ease-in-out infinite;
+                background-color: rgba(30, 30, 30, 0.9);
+                border: 2px solid #8B4513;
+                border-radius: 0 0 16px 16px;
+                padding: 16px 32px;
+                position: absolute;
+                top: 0.5%;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 1000;
+                backdrop-filter: blur(4px);
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+                transition: opacity 0.3s ease;
+                width: 80%;
+                text-align: center;
+            }
+
+            .floating-banner:hover {
+                opacity: 0.9;
+            }
+        `
+        document.head.appendChild(style)
+
+        return () => {
+            document.head.removeChild(style)
+        }
+    }, [])
 
     return (
         <>
@@ -644,18 +684,25 @@ const HomePage: React.FC = () => {
                                             sx={{
                                                 maxWidth: 345,
                                                 backgroundColor:
+
                                                     selectedEventId ===
                                                     event._id
+
                                                         ? '#2e2e2e'
+
                                                         : '#1e1e1e',
                                                 color: '#fff',
                                                 margin: 'auto',
                                                 transition:
+
                                                     'background-color 0.3s ease',
                                                 border:
+
                                                     selectedEventId ===
                                                     event._id
+
                                                         ? '2px solid #8B4513'
+
                                                         : 'none',
                                                 '&:hover': {
                                                     backgroundColor: '#2e2e2e',
@@ -710,6 +757,7 @@ const HomePage: React.FC = () => {
                                                     }}
                                                 >
                                                     Participants:{' '}
+                                               {' '}
                                                     {event.participants}
                                                 </Typography>
                                                 <Button
@@ -765,6 +813,27 @@ const HomePage: React.FC = () => {
                                 backgroundColor: '#000', // Fallback color
                             }}
                         >
+                        {/* Floating Banner */}
+                        {isAuthenticated && (
+                            <div className="floating-banner">
+                                <Typography
+                                    variant="body1"
+                                    sx={{
+                                        color: '#fff',
+                                        fontFamily: 'Press Start 2P, cursive',
+                                        fontSize: '1.2rem',
+                                        textAlign: 'center',
+                                        whiteSpace: 'nowrap',
+                                        letterSpacing: '0.1em',
+                                        textShadow:
+                                            '2px 2px 4px rgba(0,0,0,0.5)',
+                                    }}
+                                >
+                                    Click anywhere to start an event!
+                                </Typography>
+                            </div>
+                        )}
+
                             <Box
                                 ref={mapContainerRef}
                                 sx={{
@@ -824,160 +893,150 @@ const HomePage: React.FC = () => {
                     </Box>
                 </Modal>
 
-                {/* Create Event Modal */}
-                <Modal
-                    open={createEventModalOpen}
-                    onClose={() => {
-                        setCreateEventModalOpen(false)
-                        setTempPin(null)
+            {/* Create Event Modal */}
+            <Modal
+                open={createEventModalOpen}
+                onClose={() => {
+                    setCreateEventModalOpen(false)
+                    setTempPin(null)
+                }}
+            >
+                <Box
+                    sx={{
+                        position: 'absolute',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        width: 600,
+                        bgcolor: '#1e1e1e',
+                        boxShadow: 24,
+                        p: 4,
+                        borderRadius: 2,
+                        maxHeight: '90vh',
+                        overflow: 'auto',
+                        color: '#fff',
                     }}
                 >
-                    <Box
-                        sx={{
-                            position: 'absolute',
-                            top: '50%',
-                            left: '50%',
-                            transform: 'translate(-50%, -50%)',
-                            width: 600,
-                            bgcolor: '#1e1e1e',
-                            boxShadow: 24,
-                            p: 4,
-                            borderRadius: 2,
-                            maxHeight: '90vh',
-                            overflow: 'auto',
-                            color: '#fff',
+                    <Typography variant="h6" gutterBottom>
+                        Create New Event
+                    </Typography>
+                    <TextField
+                        required
+                        fullWidth
+                        label="Event Name"
+                        value={eventName}
+                        onChange={(e) => setEventName(e.target.value)}
+                        sx={{ mb: 2 }}
+                        InputProps={{
+                            style: { color: '#fff' },
+                        }}
+                        InputLabelProps={{
+                            style: { color: '#fff' },
+                        }}
+                    />
+                    <TextField
+                        required
+                        fullWidth
+                        label="Location Name"
+                        value={locationName}
+                        onChange={(e) => setLocationName(e.target.value)}
+                        sx={{ mb: 2 }}
+                        InputProps={{
+                            style: { color: '#fff' },
+                        }}
+                        InputLabelProps={{
+                            style: { color: '#fff' },
+                        }}
+                    />
+                    <TextField
+                        required
+                        select
+                        fullWidth
+                        label="Type of Game"
+                        value={gameType}
+                        onChange={(e) => setGameType(e.target.value)}
+                        sx={{ mb: 2 }}
+                        InputProps={{
+                            style: { color: '#fff' },
+                        }}
+                        InputLabelProps={{
+                            style: { color: '#fff' },
                         }}
                     >
-                        <Typography variant="h6" gutterBottom>
-                            Create New Event
-                        </Typography>
-                        <TextField
-                            required
-                            fullWidth
-                            label="Event Name"
-                            value={eventName}
-                            onChange={(e) => setEventName(e.target.value)}
-                            sx={{ mb: 2 }}
-                            InputProps={{
-                                style: { color: '#fff' },
-                            }}
-                            InputLabelProps={{
-                                style: { color: '#fff' },
-                            }}
-                        />
-                        <TextField
-                            required
-                            fullWidth
-                            label="Location Name"
-                            value={locationName}
-                            onChange={(e) => setLocationName(e.target.value)}
-                            sx={{ mb: 2 }}
-                            InputProps={{
-                                style: { color: '#fff' },
-                            }}
-                            InputLabelProps={{
-                                style: { color: '#fff' },
-                            }}
-                        />
-                        <TextField
-                            required
-                            select
-                            fullWidth
-                            label="Type of Game"
-                            value={gameType}
-                            onChange={(e) => setGameType(e.target.value)}
-                            sx={{ mb: 2 }}
-                            InputProps={{
-                                style: { color: '#fff' },
-                            }}
-                            InputLabelProps={{
-                                style: { color: '#fff' },
-                            }}
-                        >
-                            {gameTypes
-                                .filter((type) => type !== 'All')
-                                .map((game) => (
-                                    <MenuItem key={game} value={game}>
-                                        {game}
-                                    </MenuItem>
-                                ))}
-                        </TextField>
-                        <TextField
-                            fullWidth
-                            label="Event Description"
-                            multiline
-                            rows={4}
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            sx={{ mb: 2 }}
-                            InputProps={{
-                                style: { color: '#fff' },
-                            }}
-                            InputLabelProps={{
-                                style: { color: '#fff' },
-                            }}
-                        />
-                        <DatePicker
-                            label="Event Date"
-                            value={date}
-                            onChange={(newValue) => setDate(newValue)}
-                            sx={{
-                                mb: 2,
-                                width: '100%',
-                                '& .MuiInputBase-root': {
-                                    color: '#fff',
-                                    backgroundColor: '#333',
-                                },
-                                '& .MuiInputLabel-root': {
-                                    color: '#fff',
-                                },
-                                '& .MuiSvgIcon-root': {
-                                    color: '#fff',
-                                },
-                                '& .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: '#666',
-                                },
-                                '&:hover .MuiOutlinedInput-notchedOutline': {
-                                    borderColor: '#888',
-                                },
-                                '& .Mui-focused .MuiOutlinedInput-notchedOutline':
-                                    {
-                                        borderColor: '#A0522D',
-                                    },
-                            }}
-                        />
-                        <TextField
-                            required
-                            fullWidth
-                            label="Number of Participants"
-                            type="number"
-                            value={participants}
-                            onChange={(e) =>
-                                setParticipants(Number(e.target.value))
-                            }
-                            InputProps={{
-                                inputProps: { min: 1 },
-                                style: { color: '#fff' },
-                            }}
-                            InputLabelProps={{
-                                style: { color: '#fff' },
-                            }}
-                            sx={{ mb: 2 }}
-                        />
-                        <Button
-                            variant="contained"
-                            onClick={handleCreateEvent}
-                            disabled={creating}
-                            fullWidth
-                            sx={{
-                                backgroundColor: '#8B4513',
-                                '&:hover': { backgroundColor: '#A0522D' },
-                            }}
-                        >
-                            {creating ? 'Creating...' : 'Create Event'}
-                        </Button>
-                    </Box>
-                </Modal>
+                        {gameTypes
+                            .filter((type) => type !== 'All')
+                            .map((game) => (
+                                <MenuItem key={game} value={game}>
+                                    {game}
+                                </MenuItem>
+                            ))}
+                    </TextField>
+                    <TextField
+                        fullWidth
+                        label="Event Description"
+                        multiline
+                        rows={4}
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        sx={{ mb: 2 }}
+                        InputProps={{
+                            style: { color: '#fff' },
+                        }}
+                        InputLabelProps={{
+                            style: { color: '#fff' },
+                        }}
+                    />
+                    <DatePicker
+                        label="Event Date"
+                        value={date}
+                        onChange={(newValue) => setDate(newValue)}
+                        sx={{
+                            mb: 2,
+                            width: '100%',
+                            '& .MuiInputBase-root': {
+                                color: '#fff',
+                                backgroundColor: '#1e1e1e',
+                            },
+                            '& .MuiInputLabel-root': {
+                                color: '#fff',
+                            },
+                            '& .MuiSvgIcon-root': {
+                                color: '#fff',
+                            },
+                        }}
+                    />
+                    <TextField
+                        required
+                        fullWidth
+                        label="Number of Participants"
+                        type="number"
+                        value={participants}
+                        onChange={(e) =>
+                            setParticipants(Number(e.target.value))
+                        }
+                        InputProps={{
+                            inputProps: { min: 1 },
+                            style: { color: '#fff' },
+                        }}
+                        InputLabelProps={{
+                            style: { color: '#fff' },
+                        }}
+                        sx={{ mb: 2 }}
+                    />
+                    <Button
+                        variant="contained"
+                        onClick={handleCreateEvent}
+                        disabled={creating}
+                        fullWidth
+                        sx={{
+                            backgroundColor: '#8B4513',
+                            '&:hover': { backgroundColor: '#A0522D' },
+                        }}
+                    >
+                        {creating ? 'Creating...' : 'Create Event'}
+                    </Button>
+                </Box>
+            </Modal>
 
                 {/* Email Modal */}
                 <Modal
@@ -1041,6 +1100,10 @@ const HomePage: React.FC = () => {
                                     backgroundColor: '#A0522D',
                                 },
                                 fontFamily: 'Press Start 2P, cursive',
+                            '&[disabled]': {
+                                color: '#e1e1e1',
+                                backgroundColor: '#71706f', // Cool blue for disabled state
+                            },
                             }}
                         >
                             {joining ? 'Joining...' : 'Join'}

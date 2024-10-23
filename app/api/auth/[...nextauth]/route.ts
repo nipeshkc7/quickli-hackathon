@@ -3,7 +3,7 @@
 import NextAuth from 'next-auth'
 import GoogleProvider from 'next-auth/providers/google'
 import { NextAuthOptions } from 'next-auth'
-import { airDNDUsers, connectToMongoDB } from '@/app/lib/airdndClient'
+import { airDNDUsers, connectToMongoDB, dbName } from '@/app/lib/airdndClient'
 
 const authOptions: NextAuthOptions = {
     providers: [
@@ -24,7 +24,7 @@ const authOptions: NextAuthOptions = {
                 return session
             }
             try {
-                const db = await connectToMongoDB('AirDND')
+                const db = await connectToMongoDB(dbName)
                 const repo = new airDNDUsers(db)
                 if (await repo.findByEmail(session?.user?.email)) {
                     return session
